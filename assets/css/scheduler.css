@@ -1,0 +1,540 @@
+/* ==========================================================
+   LL Service Scheduler — Frontend Styles
+   Brand color: #c8a84b (golden yellow, matches site)
+   ========================================================== */
+
+/* ─────────────────────────────────────────
+   WRAP
+───────────────────────────────────────── */
+.ll-wrap {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 20px 16px 60px;
+    font-family: inherit;
+    color: #222;
+    box-sizing: border-box;
+}
+
+/* ─────────────────────────────────────────
+   PAGE TITLE
+───────────────────────────────────────── */
+.ll-page-title {
+    font-size: 2rem;
+    font-weight: 800;
+    color: #1a1a1a;
+    margin: 0 0 28px;
+    letter-spacing: -0.02em;
+}
+
+/* ─────────────────────────────────────────
+   FILTERS ROW
+───────────────────────────────────────── */
+.ll-filters {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 16px;
+    background: #f8f8f8;
+    border: 1px solid #e8e8e8;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 40px;
+}
+
+@media (max-width: 768px) {
+    .ll-filters {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ─────────────────────────────────────────
+   GENERIC FIELD
+───────────────────────────────────────── */
+.ll-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.ll-field label {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #555;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+.ll-field select,
+.ll-field input[type="text"],
+.ll-field textarea {
+    padding: 10px 14px;
+    border: 1.5px solid #ddd;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    color: #333;
+    background: #fff;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    font-family: inherit;
+    -webkit-appearance: none;
+    appearance: none;
+    box-sizing: border-box;
+    width: 100%;
+}
+
+.ll-field select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23999' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    padding-right: 32px;
+}
+
+.ll-field select:focus,
+.ll-field input[type="text"]:focus,
+.ll-field textarea:focus {
+    outline: none;
+    border-color: #c8a84b;
+    box-shadow: 0 0 0 3px rgba(200, 168, 75, 0.18);
+}
+
+/* ─────────────────────────────────────────
+   CATEGORY GROUP
+───────────────────────────────────────── */
+.ll-cat-group {
+    border: 2px solid #e8e8e8;
+    border-radius: 14px;
+    padding: 20px 22px 16px;
+    margin-bottom: 24px;
+    background: #fff;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+}
+
+.ll-cat-title {
+    font-size: 1rem;
+    font-weight: 800;
+    color: #1a1a1a;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin: 0 0 16px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid #f2f2f2;
+}
+
+/* ─────────────────────────────────────────
+   SERVICES GRID: 3 columns → 2 → 1
+───────────────────────────────────────── */
+.ll-services-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+}
+
+@media (max-width: 900px) {
+    .ll-services-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 560px) {
+    .ll-services-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ─────────────────────────────────────────
+   SERVICE ITEM
+───────────────────────────────────────── */
+.ll-svc-item {
+    display: flex;
+    align-items: stretch;
+    border: 1.5px solid #e4e4e4;
+    border-radius: 10px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+    user-select: none;
+    background: #fafafa;
+    min-height: 70px;
+}
+
+.ll-svc-item:hover {
+    border-color: #c8a84b;
+    background: #fffdf5;
+}
+
+.ll-svc-item.ll-checked {
+    border-color: #c8a84b;
+    background: #fffdf5;
+    box-shadow: 0 0 0 3px rgba(200, 168, 75, 0.22);
+}
+
+/* Left side: checkbox + text */
+.ll-svc-left {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+}
+
+.ll-svc-cb {
+    width: 18px;
+    height: 18px;
+    min-width: 18px;
+    accent-color: #c8a84b;
+    cursor: pointer;
+    margin: 0;
+}
+
+.ll-svc-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.ll-svc-name {
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: #1a1a1a;
+    line-height: 1.3;
+}
+
+.ll-svc-price {
+    font-size: 0.78rem;
+    color: #c8a84b;
+    font-weight: 600;
+}
+
+/* Right side: thumbnail */
+.ll-svc-right {
+    flex-shrink: 0;
+    width: 80px;
+}
+
+.ll-svc-right img {
+    width: 80px;
+    height: 100%;
+    min-height: 70px;
+    object-fit: cover;
+    display: block;
+}
+
+.ll-no-img {
+    width: 80px;
+    height: 70px;
+    background: linear-gradient(135deg, #f0f0f0, #e0e0e0);
+}
+
+/* ─────────────────────────────────────────
+   BOOKING SECTION (hidden until service selected)
+───────────────────────────────────────── */
+.ll-booking {
+    margin-top: 40px;
+    padding: 28px 28px 32px;
+    border: 2px solid #e8e8e8;
+    border-radius: 16px;
+    background: #fff;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+}
+
+.ll-section-title {
+    font-size: 1.3rem;
+    font-weight: 800;
+    color: #1a1a1a;
+    margin: 0 0 20px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid #f0f0f0;
+}
+
+.ll-section-subtitle {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #333;
+    margin: 0 0 14px;
+}
+
+/* ─────────────────────────────────────────
+   CALENDAR
+───────────────────────────────────────── */
+.ll-calendar-wrap {
+    max-width: 460px;
+    margin-bottom: 28px;
+}
+
+.ll-cal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+}
+
+.ll-cal-header button {
+    background: #fff;
+    border: 1.5px solid #ddd;
+    border-radius: 8px;
+    padding: 7px 16px;
+    cursor: pointer;
+    font-size: 1.1rem;
+    color: #444;
+    transition: border-color 0.2s, background 0.2s;
+    line-height: 1;
+}
+
+.ll-cal-header button:hover {
+    border-color: #c8a84b;
+    background: #fffdf5;
+    color: #c8a84b;
+}
+
+#llCalTitle {
+    font-size: 1rem;
+    font-weight: 800;
+    color: #1a1a1a;
+    letter-spacing: 0.02em;
+}
+
+.ll-cal-weekdays {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+    margin-bottom: 4px;
+}
+
+.ll-cal-weekdays span {
+    text-align: center;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #999;
+    text-transform: uppercase;
+    padding: 4px 0;
+}
+
+.ll-cal-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+}
+
+.ll-cal-cell {
+    aspect-ratio: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.88rem;
+    border-radius: 8px;
+    font-weight: 500;
+    border: 1.5px solid transparent;
+    cursor: default;
+    transition: background 0.15s, border-color 0.15s;
+}
+
+.ll-cal-empty {
+    background: transparent;
+}
+
+.ll-cal-disabled {
+    color: #ccc;
+    cursor: not-allowed;
+}
+
+.ll-cal-available {
+    color: #333;
+    background: #f5f5f5;
+    cursor: pointer;
+}
+
+.ll-cal-available:hover {
+    background: #fff3cc;
+    border-color: #c8a84b;
+}
+
+.ll-cal-selected {
+    background: #c8a84b !important;
+    color: #fff !important;
+    font-weight: 800;
+    border-color: #c8a84b !important;
+}
+
+/* ─────────────────────────────────────────
+   TIME SLOTS
+───────────────────────────────────────── */
+.ll-times {
+    margin-bottom: 28px;
+}
+
+.ll-times-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.ll-time-btn {
+    padding: 10px 20px;
+    border: 1.5px solid #ddd;
+    border-radius: 8px;
+    background: #f8f8f8;
+    cursor: pointer;
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: #444;
+    transition: border-color 0.2s, background 0.2s, color 0.2s;
+    font-family: inherit;
+}
+
+.ll-time-btn:hover {
+    border-color: #c8a84b;
+    background: #fffdf5;
+    color: #a07e2a;
+}
+
+.ll-time-selected {
+    border-color: #c8a84b !important;
+    background: #c8a84b !important;
+    color: #fff !important;
+}
+
+/* ─────────────────────────────────────────
+   NOTES TEXTAREA
+───────────────────────────────────────── */
+.ll-notes-field {
+    margin-top: 24px;
+    margin-bottom: 24px;
+}
+
+.ll-notes-field textarea {
+    width: 100%;
+    resize: vertical;
+}
+
+/* ─────────────────────────────────────────
+   ORDER SUMMARY
+───────────────────────────────────────── */
+.ll-summary {
+    background: #f9f9f9;
+    border: 1.5px solid #ebebeb;
+    border-radius: 12px;
+    padding: 16px 20px;
+    margin-bottom: 20px;
+}
+
+.ll-summary-header {
+    font-size: 0.8rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #888;
+    margin-bottom: 10px;
+}
+
+.ll-summary-item {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.9rem;
+    color: #444;
+    padding: 4px 0;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.ll-summary-item:last-child {
+    border-bottom: none;
+}
+
+.ll-summary-total {
+    font-size: 1.05rem;
+    color: #1a1a1a;
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 2px solid #e8e8e8;
+    text-align: right;
+}
+
+.ll-summary-total strong {
+    color: #c8a84b;
+    font-size: 1.15rem;
+}
+
+/* ─────────────────────────────────────────
+   SUBMIT BUTTON
+───────────────────────────────────────── */
+.ll-btn-submit {
+    display: inline-block;
+    padding: 14px 44px;
+    background: #c8a84b;
+    color: #fff;
+    border: none;
+    border-radius: 50px;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.1s, box-shadow 0.2s;
+    letter-spacing: 0.03em;
+    font-family: inherit;
+    box-shadow: 0 4px 14px rgba(200, 168, 75, 0.35);
+}
+
+.ll-btn-submit:hover {
+    background: #b89438;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 18px rgba(200, 168, 75, 0.45);
+}
+
+.ll-btn-submit:active {
+    transform: translateY(0);
+}
+
+.ll-btn-submit:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+/* ─────────────────────────────────────────
+   STATUS MESSAGES
+───────────────────────────────────────── */
+.ll-msg {
+    margin-top: 14px;
+    font-size: 0.9rem;
+    padding: 12px 16px;
+    border-radius: 8px;
+    display: none;
+}
+
+.ll-msg:not(:empty) {
+    display: block;
+}
+
+.ll-msg-error {
+    background: #fff5f5;
+    color: #c0392b;
+    border: 1px solid #f5c6c6;
+}
+
+.ll-msg-success {
+    background: #f0fff8;
+    color: #1a7c4f;
+    border: 1px solid #b7e4cc;
+}
+
+/* ─────────────────────────────────────────
+   MISC
+───────────────────────────────────────── */
+.ll-no-services {
+    padding: 20px;
+    color: #888;
+    font-style: italic;
+}
+
+/* Smooth reveal animation for booking section */
+.ll-booking {
+    animation: llFadeIn 0.35s ease;
+}
+
+@keyframes llFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(16px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
