@@ -10,7 +10,7 @@
        CONFIG  (injected from PHP via wp_localize_script)
     ══════════════════════════════════════════ */
     var cfg            = window.llSched || {};
-    var AVAILABLE_DAYS = cfg.availableDays  || [0, 6];   // JS day: 0=Sun, 6=Sat
+    var BLOCKED_DAYS   = cfg.blockedDays || []; // JS day: 0=Sun, 6=Sat
     var TIME_SLOTS     = cfg.timeSlots      || [];
     var MODE           = cfg.selectionMode  || 'multiple'; // 'single' | 'multiple'
     var AJAX_URL       = cfg.ajaxUrl        || '';
@@ -176,8 +176,8 @@
             elCalTitle.textContent = MONTH_NAMES[calMonth] + ' ' + calYear;
         }
 
-        var today     = new Date();
-        today.setHours(0, 0, 0, 0);
+        var now       = new Date();
+        var todayStr  = formatDate(now.getFullYear(), now.getMonth(), now.getDate());
 
         var firstDay  = new Date(calYear, calMonth, 1).getDay(); // 0=Sun
         var daysInMo  = new Date(calYear, calMonth + 1, 0).getDate();
@@ -200,13 +200,12 @@
             cell.className = 'll-cal-cell';
             cell.textContent = d;
 
-            var thisDate  = new Date(calYear, calMonth, d);
-            var jsDay     = thisDate.getDay(); // 0=Sun ... 6=Sat
+            var jsDay     = new Date(calYear, calMonth, d).getDay(); // 0=Sun ... 6=Sat
             var dateStr   = formatDate(calYear, calMonth, d);
-            var isPast    = thisDate < today;
-            var isOpen    = AVAILABLE_DAYS.indexOf(jsDay) !== -1;
+            var isPast    = dateStr < todayStr;
+            var isBlocked = BLOCKED_DAYS.indexOf(jsDay) !== -1;
 
-            if (isPast || !isOpen) {
+            if (isPast || isBlocked) {
                 cell.classList.add('ll-cal-disabled');
                 cell.setAttribute('aria-disabled', 'true');
             } else {
@@ -258,6 +257,18 @@
                String(d).padStart(2, '0');
     }
 
+    function isDateBookable(dateStr) {
+        var now      = new Date();
+        var todayStr = formatDate(now.getFullYear(), now.getMonth(), now.getDate());
+        if (dateStr < todayStr) {
+            return false;
+        }
+
+        var parts = dateStr.split('-');
+        var jsDay = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10)).getDay();
+        return BLOCKED_DAYS.indexOf(jsDay) === -1;
+    }
+
     /* ══════════════════════════════════════════
        TIME SLOTS
     ══════════════════════════════════════════ */
@@ -307,8 +318,8 @@
             showMsg('Please select at least one service.', 'error');
             return false;
         }
-        if (!selectedDate) {
-            showMsg('Please select a booking date on the calendar.', 'error');
+        if (!selectedDate || !isDateBookable(selectedDate)) {
+            showMsg('Please select a valid booking date on the calendar.', 'error');
             // Scroll to calendar
             if (elCalGrid) elCalGrid.scrollIntoView({ behavior: 'smooth', block: 'center' });
             return false;

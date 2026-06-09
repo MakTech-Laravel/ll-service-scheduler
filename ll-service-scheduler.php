@@ -22,6 +22,8 @@ define( 'LL_SCHED_FILE', __FILE__ );
    Boot all classes after all plugins are loaded
 ───────────────────────────────────────────── */
 add_action( 'plugins_loaded', function () {
+    ll_sched_maybe_migrate_blocked_days();
+
     require_once LL_SCHED_DIR . 'includes/class-admin.php';
     require_once LL_SCHED_DIR . 'includes/class-frontend.php';
     require_once LL_SCHED_DIR . 'includes/class-ajax.php';
@@ -30,6 +32,20 @@ add_action( 'plugins_loaded', function () {
     new LL_Sched_Frontend();
     new LL_Sched_Ajax();
 } );
+
+/**
+ * One-time migration: reuse legacy checkbox values as blocked days.
+ * The old frontend treated checked days as available; they are now blocked.
+ */
+function ll_sched_maybe_migrate_blocked_days() {
+    $legacy = get_option( 'll_sched_available_days', null );
+    if ( $legacy === null || get_option( 'll_sched_blocked_days', null ) !== null ) {
+        return;
+    }
+
+    update_option( 'll_sched_blocked_days', array_map( 'intval', (array) $legacy ) );
+    delete_option( 'll_sched_available_days' );
+}
 
 /* ─────────────────────────────────────────────
    Activation: seed default options
@@ -56,8 +72,8 @@ function ll_sched_activate() {
     }
 
     // 0 = Sunday … 6 = Saturday  (JS / PHP date convention)
-    if ( ! get_option( 'll_sched_available_days' ) ) {
-        update_option( 'll_sched_available_days', array( 0, 6 ) ); // Sat + Sun open by default
+    if ( ! get_option( 'll_sched_blocked_days' ) && ! get_option( 'll_sched_available_days' ) ) {
+        update_option( 'll_sched_blocked_days', array( 0, 6 ) ); // Sat + Sun blocked by default
     }
 
     if ( ! get_option( 'll_sched_time_slots' ) ) {

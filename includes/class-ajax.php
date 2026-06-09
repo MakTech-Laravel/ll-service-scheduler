@@ -43,10 +43,23 @@ class LL_Sched_Ajax {
             wp_send_json_error( 'Please select a time slot.' );
         }
 
-        // 4. Validate date format (Y-m-d)
+        // 4. Validate date format (Y-m-d), past dates, and blocked weekdays
         $date_obj = DateTime::createFromFormat( 'Y-m-d', $date );
         if ( ! $date_obj || $date_obj->format( 'Y-m-d' ) !== $date ) {
             wp_send_json_error( 'Invalid date format.' );
+        }
+
+        $today = new DateTime( 'today', wp_timezone() );
+        $today->setTime( 0, 0, 0 );
+        $date_obj->setTime( 0, 0, 0 );
+        if ( $date_obj < $today ) {
+            wp_send_json_error( 'Past dates cannot be booked. Please choose a future date.' );
+        }
+
+        $blocked_days = array_map( 'intval', (array) get_option( 'll_sched_blocked_days', array() ) );
+        $weekday = (int) $date_obj->format( 'w' ); // 0 = Sunday … 6 = Saturday
+        if ( in_array( $weekday, $blocked_days, true ) ) {
+            wp_send_json_error( 'The selected date is not available for booking.' );
         }
 
         // 5. Resolve service IDs → titles + prices

@@ -48,7 +48,7 @@ class LL_Sched_Frontend {
         wp_localize_script( 'll-sched', 'llSched', array(
             'ajaxUrl'       => admin_url( 'admin-ajax.php' ),
             'nonce'         => wp_create_nonce( 'll_sched_booking' ),
-            'availableDays' => array_map( 'intval', (array) get_option( 'll_sched_available_days', array( 0, 6 ) ) ),
+            'blockedDays'   => array_map( 'intval', (array) get_option( 'll_sched_blocked_days', array() ) ),
             'timeSlots'     => (array) get_option( 'll_sched_time_slots', array() ),
             'selectionMode' => get_option( 'll_sched_selection_mode', 'multiple' ),
         ) );

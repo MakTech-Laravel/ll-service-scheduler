@@ -213,7 +213,7 @@ class LL_Sched_Admin {
        TAB: Calendar & Days
     ───────────────────────────────────────────── */
     private function tab_calendar() {
-        $available = array_map( 'intval', (array) get_option( 'll_sched_available_days', array( 0, 6 ) ) );
+        $blocked = array_map( 'intval', (array) get_option( 'll_sched_blocked_days', array() ) );
         $day_names = array(
             0 => 'Sunday',
             1 => 'Monday',
@@ -226,20 +226,20 @@ class LL_Sched_Admin {
         ?>
         <table class="form-table" style="margin-top:10px;">
             <tr>
-                <th scope="row" style="width:220px;">Available Booking Days</th>
+                <th scope="row" style="width:220px;">Blocked Booking Days</th>
                 <td>
                     <p class="description" style="margin-bottom:14px;">
-                        Tick the days that are <strong>open</strong> for bookings.
-                        All other days will be greyed-out and unclickable on the calendar.<br>
-                        <em>Default: Saturday and Sunday.</em>
+                        Tick the days that are <strong>not available</strong> for bookings.
+                        Checked days will be greyed-out and unclickable on the calendar.
+                        Past dates are always blocked automatically.
                     </p>
                     <div style="display:grid;grid-template-columns:repeat(4,140px);gap:10px;">
                         <?php foreach ( $day_names as $num => $name ) : ?>
-                        <label style="display:flex;align-items:center;gap:8px;padding:8px 12px;border:1px solid #ddd;border-radius:6px;cursor:pointer;background:<?php echo in_array( $num, $available ) ? '#f0fff4' : '#fff'; ?>">
+                        <label style="display:flex;align-items:center;gap:8px;padding:8px 12px;border:1px solid #ddd;border-radius:6px;cursor:pointer;background:<?php echo in_array( $num, $blocked ) ? '#fff5f5' : '#fff'; ?>">
                             <input type="checkbox"
-                                   name="available_days[]"
+                                   name="blocked_days[]"
                                    value="<?php echo $num; ?>"
-                                   <?php echo in_array( $num, $available ) ? 'checked' : ''; ?>>
+                                   <?php echo in_array( $num, $blocked ) ? 'checked' : ''; ?>>
                             <?php echo $name; ?>
                         </label>
                         <?php endforeach; ?>
@@ -326,8 +326,9 @@ class LL_Sched_Admin {
 
         /* ─── Calendar ─── */
         if ( $tab === 'calendar' ) {
-            $days = isset( $_POST['available_days'] ) ? array_map( 'intval', (array) $_POST['available_days'] ) : array();
-            update_option( 'll_sched_available_days', $days );
+            $days = isset( $_POST['blocked_days'] ) ? array_map( 'intval', (array) $_POST['blocked_days'] ) : array();
+            update_option( 'll_sched_blocked_days', $days );
+            delete_option( 'll_sched_available_days' );
         }
 
         /* ─── Time Slots ─── */
