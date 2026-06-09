@@ -255,7 +255,7 @@
    CALENDAR
 ───────────────────────────────────────── */
 .ll-calendar-wrap {
-    max-width: 460px;
+    width: 100%;
     margin-bottom: 28px;
 }
 
@@ -293,9 +293,10 @@
 
 .ll-cal-weekdays {
     display: grid;
-    grid-template-columns: repeat(7, 1fr);
+    grid-template-columns: repeat(7, minmax(0, 1fr));
     gap: 4px;
     margin-bottom: 4px;
+    width: 100%;
 }
 
 .ll-cal-weekdays span {
@@ -309,8 +310,9 @@
 
 .ll-cal-grid {
     display: grid;
-    grid-template-columns: repeat(7, 1fr);
+    grid-template-columns: repeat(7, minmax(0, 1fr));
     gap: 4px;
+    width: 100%;
 }
 
 .ll-cal-cell {

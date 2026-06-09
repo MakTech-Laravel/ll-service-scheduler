@@ -218,22 +218,21 @@
                     cell.classList.add('ll-cal-selected');
                 }
 
-                (function (ds) {
-                    cell.addEventListener('click', function () {
+                (function (ds, targetCell) {
+                    targetCell.addEventListener('click', function () {
                         onDateSelect(ds);
-                        // Highlight selected cell
                         elCalGrid.querySelectorAll('.ll-cal-cell').forEach(function (c) {
                             c.classList.remove('ll-cal-selected');
                         });
-                        cell.classList.add('ll-cal-selected');
+                        targetCell.classList.add('ll-cal-selected');
                     });
-                    cell.addEventListener('keydown', function (e) {
+                    targetCell.addEventListener('keydown', function (e) {
                         if (e.key === 'Enter' || e.key === ' ') {
                             e.preventDefault();
-                            cell.click();
+                            targetCell.click();
                         }
                     });
-                }(dateStr));
+                }(dateStr, cell));
             }
 
             elCalGrid.appendChild(cell);
