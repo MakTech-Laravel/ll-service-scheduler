@@ -316,12 +316,12 @@
 }
 
 .ll-cal-cell {
-    aspect-ratio: 1;
+    height: 38px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 0.88rem;
-    border-radius: 8px;
+    font-size: 0.85rem;
+    border-radius: 6px;
     font-weight: 500;
     border: 1.5px solid transparent;
     cursor: default;
