@@ -77,8 +77,8 @@ class LL_Sched_Ajax {
             $post = get_post( $sid );
             if ( ! $post || $post->post_type !== 'services' ) continue;
 
-            if ( ! ll_sched_service_matches_filters( $sid, $property_size, $city ) ) {
-                wp_send_json_error( '"' . $post->post_title . '" is not available for the selected property size or city.' );
+            if ( ! ll_sched_service_matches_filters( $sid, $property_size, $city, $address ) ) {
+                wp_send_json_error( '"' . $post->post_title . '" is not available for the selected filters (property size, city, or address).' );
             }
 
             if ( ! ll_sched_service_allows_date( $sid, $date, $global_blocked ) ) {

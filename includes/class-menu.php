@@ -218,7 +218,8 @@ class LL_Sched_Menu {
                                 <th>#</th>
                                 <th>Customer</th>
                                 <th>Services</th>
-                                <th>Date</th>
+                                <th>Service Date</th>
+                                <th>Order Placed</th>
                                 <th>Status</th>
                             </tr>
                         </thead>
@@ -232,6 +233,7 @@ class LL_Sched_Menu {
                             </td>
                             <td><?php echo esc_html( $b->service_names ); ?></td>
                             <td><?php echo esc_html( $b->booking_date ); ?><br><small><?php echo esc_html( $b->time_label ); ?></small></td>
+                            <td><?php echo esc_html( ll_sched_get_booking_ordered_at( $b ) ?: '—' ); ?></td>
                             <td><span class="ll-status-badge ll-status-<?php echo esc_attr( $b->status ); ?>"><?php echo esc_html( ucfirst( $b->status ) ); ?></span></td>
                         </tr>
                         <?php endforeach; ?>
@@ -340,8 +342,8 @@ class LL_Sched_Menu {
                         <th style="width:40px;">#</th>
                         <th>Customer</th>
                         <th>Services</th>
-                        <th>Date &amp; Time</th>
-                        <th>Property</th>
+                        <th>Service Date</th>
+                        <th>Order Placed</th>
                         <th>Total</th>
                         <th>Status</th>
                         <th>Order</th>
@@ -369,7 +371,10 @@ class LL_Sched_Menu {
                         <small><?php echo esc_html( $b->time_label ); ?></small>
                     </td>
                     <td>
-                        <?php echo esc_html( $b->property_size ); ?>
+                        <?php
+                        $ordered_at = ll_sched_get_booking_ordered_at( $b );
+                        echo $ordered_at ? esc_html( $ordered_at ) : '<span style="color:#aaa;">—</span>';
+                        ?>
                     </td>
                     <td><strong>$<?php echo number_format( (float) $b->total_price, 2 ); ?></strong></td>
                     <td>

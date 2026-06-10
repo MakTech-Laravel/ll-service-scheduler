@@ -56,8 +56,9 @@ class LL_Sched_Settings {
 
     /* ─── Tab: General ─── */
     private static function tab_general() {
-        $sizes  = (array) get_option( 'll_sched_property_sizes', array() );
-        $cities = (array) get_option( 'll_sched_cities', array() );
+        $sizes      = (array) get_option( 'll_sched_property_sizes', array() );
+        $cities     = (array) get_option( 'll_sched_cities', array() );
+        $addresses  = (array) get_option( 'll_sched_addresses', array() );
         $mode   = get_option( 'll_sched_selection_mode', 'multiple' );
         ?>
         <table class="form-table">
@@ -102,6 +103,21 @@ class LL_Sched_Settings {
                         <?php endforeach; ?>
                     </div>
                     <button type="button" class="button button-secondary ll-add" data-target="ll-cities-wrap" data-name="cities[]" data-placeholder="e.g. Montreal" style="margin-top:6px;">+ Add City</button>
+                </td>
+            </tr>
+            <tr>
+                <th>Service Areas / Addresses</th>
+                <td>
+                    <p class="description" style="margin-bottom:10px;">Address or area options for the booking form filter (e.g. neighborhoods, zones). Used the same way as cities.</p>
+                    <div id="ll-addresses-wrap">
+                        <?php foreach ( $addresses as $a ) : ?>
+                        <div class="ll-row">
+                            <input type="text" name="addresses[]" value="<?php echo esc_attr( $a ); ?>" class="regular-text" placeholder="e.g. Downtown Montreal">
+                            <button type="button" class="button ll-rm">✕</button>
+                        </div>
+                        <?php endforeach; ?>
+                    </div>
+                    <button type="button" class="button button-secondary ll-add" data-target="ll-addresses-wrap" data-name="addresses[]" data-placeholder="e.g. Downtown Montreal" style="margin-top:6px;">+ Add Area</button>
                 </td>
             </tr>
         </table>
@@ -174,6 +190,7 @@ class LL_Sched_Settings {
             update_option( 'll_sched_selection_mode', in_array( $mode, array( 'single', 'multiple' ) ) ? $mode : 'multiple' );
             update_option( 'll_sched_property_sizes', array_values( array_filter( array_map( 'sanitize_text_field', (array)( $_POST['property_sizes'] ?? array() ) ) ) ) );
             update_option( 'll_sched_cities',         array_values( array_filter( array_map( 'sanitize_text_field', (array)( $_POST['cities'] ?? array() ) ) ) ) );
+            update_option( 'll_sched_addresses',    array_values( array_filter( array_map( 'sanitize_text_field', (array)( $_POST['addresses'] ?? array() ) ) ) ) );
         }
 
         if ( $tab === 'calendar' ) {

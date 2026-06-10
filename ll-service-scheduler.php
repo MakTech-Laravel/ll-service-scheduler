@@ -350,11 +350,12 @@ function ll_sched_service_allows_weekday( $post_id, $weekday, $global_blocked = 
 }
 
 /**
- * Whether a service matches property size / city filters.
+ * Whether a service matches property size / city / address filters.
  */
-function ll_sched_service_matches_filters( $post_id, $property_size, $city ) {
-    $sizes  = array_filter( (array) get_post_meta( $post_id, '_ll_svc_property_sizes', true ) );
-    $cities = array_filter( (array) get_post_meta( $post_id, '_ll_svc_cities', true ) );
+function ll_sched_service_matches_filters( $post_id, $property_size, $city, $address = '' ) {
+    $sizes     = array_filter( (array) get_post_meta( $post_id, '_ll_svc_property_sizes', true ) );
+    $cities    = array_filter( (array) get_post_meta( $post_id, '_ll_svc_cities', true ) );
+    $addresses = array_filter( (array) get_post_meta( $post_id, '_ll_svc_addresses', true ) );
 
     if ( ! empty( $sizes ) && $property_size !== '' && ! in_array( $property_size, $sizes, true ) ) {
         return false;
@@ -365,6 +366,20 @@ function ll_sched_service_matches_filters( $post_id, $property_size, $city ) {
         $match      = false;
         foreach ( $cities as $c ) {
             if ( strtolower( trim( $c ) ) === $city_lower ) {
+                $match = true;
+                break;
+            }
+        }
+        if ( ! $match ) {
+            return false;
+        }
+    }
+
+    if ( ! empty( $addresses ) && $address !== '' ) {
+        $address_lower = strtolower( trim( $address ) );
+        $match         = false;
+        foreach ( $addresses as $a ) {
+            if ( strtolower( trim( $a ) ) === $address_lower ) {
                 $match = true;
                 break;
             }
@@ -469,4 +484,27 @@ function ll_sched_update_booking_status( $id, $status ) {
     global $wpdb;
     $table = $wpdb->prefix . 'll_sched_bookings';
     return $wpdb->update( $table, array( 'status' => sanitize_text_field( $status ) ), array( 'id' => (int) $id ) );
+}
+
+/**
+ * Formatted date/time when the order was placed (WC order date, or booking created_at).
+ */
+function ll_sched_get_booking_ordered_at( $booking ) {
+    $format = get_option( 'date_format' ) . ' ' . get_option( 'time_format' );
+
+    if ( ! empty( $booking->order_id ) && function_exists( 'wc_get_order' ) ) {
+        $order = wc_get_order( (int) $booking->order_id );
+        if ( $order ) {
+            $created = $order->get_date_created();
+            if ( $created ) {
+                return $created->date_i18n( $format );
+            }
+        }
+    }
+
+    if ( ! empty( $booking->created_at ) ) {
+        return mysql2date( $format, $booking->created_at );
+    }
+
+    return '';
 }

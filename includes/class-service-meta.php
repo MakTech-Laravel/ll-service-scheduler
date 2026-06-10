@@ -59,15 +59,17 @@ class LL_Sched_Service_Meta {
     public function render_availability_meta_box( $post ) {
         wp_nonce_field( 'll_sched_service_meta', 'll_svc_nonce' );
 
-        $allowed_sizes  = (array) get_post_meta( $post->ID, '_ll_svc_property_sizes', true );
-        $allowed_cities = (array) get_post_meta( $post->ID, '_ll_svc_cities', true );
-        $global_sizes   = (array) get_option( 'll_sched_property_sizes', array() );
-        $global_cities  = (array) get_option( 'll_sched_cities', array() );
+        $allowed_sizes     = (array) get_post_meta( $post->ID, '_ll_svc_property_sizes', true );
+        $allowed_cities    = (array) get_post_meta( $post->ID, '_ll_svc_cities', true );
+        $allowed_addresses = (array) get_post_meta( $post->ID, '_ll_svc_addresses', true );
+        $global_sizes      = (array) get_option( 'll_sched_property_sizes', array() );
+        $global_cities     = (array) get_option( 'll_sched_cities', array() );
+        $global_addresses  = (array) get_option( 'll_sched_addresses', array() );
         ?>
         <div class="ll-svc-meta-wrap">
             <p class="description" style="margin-top:0;">
-                Restrict which property sizes and cities can book this service on the front-end booking form.
-                Leave all unchecked to allow <strong>all</strong> sizes and cities.
+                Restrict which property sizes, cities, and service areas can book this service on the front-end form.
+                Leave all unchecked to allow <strong>all</strong> options in each group.
             </p>
 
             <div class="ll-svc-section">
@@ -102,6 +104,25 @@ class LL_Sched_Service_Meta {
                                value="<?php echo esc_attr( $city ); ?>"
                                <?php checked( in_array( $city, $allowed_cities, true ) ); ?>>
                         <?php echo esc_html( $city ); ?>
+                    </label>
+                    <?php endforeach; ?>
+                </div>
+                <?php endif; ?>
+            </div>
+
+            <div class="ll-svc-section">
+                <h4>Allowed Service Areas / Addresses</h4>
+                <?php if ( empty( $global_addresses ) ) : ?>
+                <p class="description">No areas configured. Add them under <a href="<?php echo esc_url( admin_url( 'admin.php?page=ll-scheduler-settings&tab=general' ) ); ?>">Settings → General</a>.</p>
+                <?php else : ?>
+                <div class="ll-day-checkboxes">
+                    <?php foreach ( $global_addresses as $address ) : ?>
+                    <label class="ll-day-label <?php echo in_array( $address, $allowed_addresses, true ) ? 'll-day-open' : ''; ?>">
+                        <input type="checkbox"
+                               name="_ll_svc_addresses[]"
+                               value="<?php echo esc_attr( $address ); ?>"
+                               <?php checked( in_array( $address, $allowed_addresses, true ) ); ?>>
+                        <?php echo esc_html( $address ); ?>
                     </label>
                     <?php endforeach; ?>
                 </div>
@@ -241,10 +262,12 @@ class LL_Sched_Service_Meta {
         }
 
         // Filter availability
-        $sizes = array_values( array_filter( array_map( 'sanitize_text_field', (array) ( $_POST['_ll_svc_property_sizes'] ?? array() ) ) ) );
-        $cities = array_values( array_filter( array_map( 'sanitize_text_field', (array) ( $_POST['_ll_svc_cities'] ?? array() ) ) ) );
+        $sizes     = array_values( array_filter( array_map( 'sanitize_text_field', (array) ( $_POST['_ll_svc_property_sizes'] ?? array() ) ) ) );
+        $cities    = array_values( array_filter( array_map( 'sanitize_text_field', (array) ( $_POST['_ll_svc_cities'] ?? array() ) ) ) );
+        $addresses = array_values( array_filter( array_map( 'sanitize_text_field', (array) ( $_POST['_ll_svc_addresses'] ?? array() ) ) ) );
         update_post_meta( $post_id, '_ll_svc_property_sizes', $sizes );
         update_post_meta( $post_id, '_ll_svc_cities', $cities );
+        update_post_meta( $post_id, '_ll_svc_addresses', $addresses );
 
         // Custom schedule toggle
         update_post_meta( $post_id, '_ll_svc_use_custom', isset( $_POST['_ll_svc_use_custom'] ) ? '1' : '0' );

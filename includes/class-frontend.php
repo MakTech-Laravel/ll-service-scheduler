@@ -50,6 +50,7 @@ class LL_Sched_Frontend {
                 'useCustom'      => $use_custom,
                 'propertySizes'  => array_values( (array) get_post_meta( $id, '_ll_svc_property_sizes', true ) ),
                 'cities'         => array_values( (array) get_post_meta( $id, '_ll_svc_cities', true ) ),
+                'addresses'      => array_values( (array) get_post_meta( $id, '_ll_svc_addresses', true ) ),
             );
 
             if ( $use_custom ) {
@@ -68,8 +69,9 @@ class LL_Sched_Frontend {
        Shortcode renderer
     ───────────────────────────────────────────── */
     public function shortcode( $atts ) {
-        $sizes  = (array) get_option( 'll_sched_property_sizes', array() );
-        $cities = (array) get_option( 'll_sched_cities', array() );
+        $sizes     = (array) get_option( 'll_sched_property_sizes', array() );
+        $cities    = (array) get_option( 'll_sched_cities', array() );
+        $addresses = (array) get_option( 'll_sched_addresses', array() );
         $cats   = get_terms( array( 'taxonomy' => 'service-category', 'hide_empty' => true, 'orderby' => 'name' ) );
 
         ob_start();

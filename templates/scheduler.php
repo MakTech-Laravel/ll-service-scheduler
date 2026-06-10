@@ -2,8 +2,9 @@
 /**
  * Template: Schedule Service shortcode output
  * Variables available from LL_Sched_Frontend::shortcode():
- *   $sizes  - array of property size strings
- *   $cities - array of city strings
+ *   $sizes     - array of property size strings
+ *   $cities    - array of city strings
+ *   $addresses - array of service area / address strings
  *   $cats   - WP_Term[] service categories (or WP_Error)
  */
 defined( 'ABSPATH' ) || exit;
@@ -48,8 +49,19 @@ defined( 'ABSPATH' ) || exit;
         </div>
 
         <div class="ll-field">
-            <label for="llAddress">Address</label>
-            <input type="text" id="llAddress" placeholder="Unit, Street">
+            <label for="llAddress">Service Area / Address</label>
+            <input type="text"
+                   id="llAddress"
+                   placeholder="Area or address"
+                   list="llAddressList"
+                   autocomplete="street-address">
+            <?php if ( ! empty( $addresses ) ) : ?>
+            <datalist id="llAddressList">
+                <?php foreach ( $addresses as $a ) : ?>
+                <option value="<?php echo esc_attr( $a ); ?>">
+                <?php endforeach; ?>
+            </datalist>
+            <?php endif; ?>
         </div>
 
     </div><!-- .ll-filters -->
@@ -87,6 +99,7 @@ defined( 'ABSPATH' ) || exit;
                     $img            = get_the_post_thumbnail_url( $svc->ID, 'medium' );
                     $svc_sizes      = array_values( (array) get_post_meta( $svc->ID, '_ll_svc_property_sizes', true ) );
                     $svc_cities     = array_values( (array) get_post_meta( $svc->ID, '_ll_svc_cities', true ) );
+                    $svc_addresses  = array_values( (array) get_post_meta( $svc->ID, '_ll_svc_addresses', true ) );
                 ?>
 
                 <label class="ll-svc-item"
@@ -94,7 +107,8 @@ defined( 'ABSPATH' ) || exit;
                        data-price="<?php echo esc_attr( floatval( $price ) ); ?>"
                        data-title="<?php echo esc_attr( $svc->post_title ); ?>"
                        data-sizes="<?php echo esc_attr( wp_json_encode( $svc_sizes ) ); ?>"
-                       data-cities="<?php echo esc_attr( wp_json_encode( $svc_cities ) ); ?>">
+                       data-cities="<?php echo esc_attr( wp_json_encode( $svc_cities ) ); ?>"
+                       data-addresses="<?php echo esc_attr( wp_json_encode( $svc_addresses ) ); ?>">
 
                     <div class="ll-svc-left">
                         <input type="checkbox"

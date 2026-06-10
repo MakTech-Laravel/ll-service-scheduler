@@ -131,7 +131,7 @@
     }
 
     /* ══════════════════════════════════════════
-       SERVICE FILTERS (property size / city)
+       SERVICE FILTERS (property size / city / address)
     ══════════════════════════════════════════ */
     function parseJsonAttr(str) {
         if (!str) return [];
@@ -143,27 +143,34 @@
         }
     }
 
-    function normalizeCity(city) {
-        return (city || '').trim().toLowerCase();
+    function normalizeFilterText(value) {
+        return (value || '').trim().toLowerCase();
     }
 
-    function serviceMatchesFilters(item, propSize, city) {
-        var sizes  = parseJsonAttr(item.dataset.sizes);
-        var cities = parseJsonAttr(item.dataset.cities);
+    function listContainsValue(list, value) {
+        if (!value || !list.length) return true;
+        var norm = normalizeFilterText(value);
+        for (var i = 0; i < list.length; i++) {
+            if (normalizeFilterText(list[i]) === norm) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    function serviceMatchesFilters(item, propSize, city, address) {
+        var sizes     = parseJsonAttr(item.dataset.sizes);
+        var cities    = parseJsonAttr(item.dataset.cities);
+        var addresses = parseJsonAttr(item.dataset.addresses);
 
         if (propSize && sizes.length && sizes.indexOf(propSize) === -1) {
             return false;
         }
-        if (city && cities.length) {
-            var cityNorm = normalizeCity(city);
-            var match = false;
-            for (var i = 0; i < cities.length; i++) {
-                if (normalizeCity(cities[i]) === cityNorm) {
-                    match = true;
-                    break;
-                }
-            }
-            if (!match) return false;
+        if (city && cities.length && !listContainsValue(cities, city)) {
+            return false;
+        }
+        if (address && addresses.length && !listContainsValue(addresses, address)) {
+            return false;
         }
         return true;
     }
@@ -171,12 +178,14 @@
     function applyServiceFilters() {
         var propSizeEl = document.getElementById('llPropSize');
         var cityEl     = document.getElementById('llCity');
+        var addressEl  = document.getElementById('llAddress');
         var propSize   = propSizeEl ? propSizeEl.value : '';
         var city       = cityEl ? cityEl.value : '';
+        var address    = addressEl ? addressEl.value : '';
         var changed    = false;
 
         document.querySelectorAll('.ll-svc-item').forEach(function (item) {
-            var visible = serviceMatchesFilters(item, propSize, city);
+            var visible = serviceMatchesFilters(item, propSize, city, address);
             item.classList.toggle('ll-svc-hidden', !visible);
             item.style.display = visible ? '' : 'none';
 
@@ -204,6 +213,7 @@
     function initFilters() {
         var propSizeEl = document.getElementById('llPropSize');
         var cityEl     = document.getElementById('llCity');
+        var addressEl  = document.getElementById('llAddress');
 
         if (propSizeEl) {
             propSizeEl.addEventListener('change', applyServiceFilters);
@@ -211,6 +221,10 @@
         if (cityEl) {
             cityEl.addEventListener('input', applyServiceFilters);
             cityEl.addEventListener('change', applyServiceFilters);
+        }
+        if (addressEl) {
+            addressEl.addEventListener('input', applyServiceFilters);
+            addressEl.addEventListener('change', applyServiceFilters);
         }
     }
 
