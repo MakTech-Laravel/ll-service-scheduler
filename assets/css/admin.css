@@ -2,8 +2,12 @@
    LL Service Scheduler — Admin Styles v2
    ================================================================ */
 
-/* ── Shared wrap ── */
-.ll-admin-wrap { max-width: 1200px; }
+/* ── Shared wrap (full admin content width) ── */
+.ll-admin-wrap {
+    max-width: none;
+    width: auto;
+    box-sizing: border-box;
+}
 
 .ll-page-heading {
     display: flex;
@@ -139,6 +143,12 @@
 /* ── Bookings list ── */
 .ll-bookings-filters { margin-bottom: 16px; }
 .ll-filter-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+
+.ll-bookings-table-wrap {
+    overflow-x: auto;
+    width: 100%;
+    margin-bottom: 16px;
+}
 
 .ll-bookings-table th, .ll-bookings-table td {
     padding: 10px 12px !important;

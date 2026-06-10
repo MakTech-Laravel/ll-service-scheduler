@@ -167,6 +167,121 @@ function ll_sched_ensure_woo_product() {
 }
 
 /* ─────────────────────────────────────────────
+   Helpers: per-service availability & filters
+───────────────────────────────────────────── */
+
+/**
+ * Available weekdays (0=Sun … 6=Sat) for a service with custom schedule.
+ * Migrates legacy _ll_svc_blocked_days when needed.
+ */
+function ll_sched_get_service_available_days( $post_id ) {
+    $available = get_post_meta( $post_id, '_ll_svc_available_days', true );
+    if ( is_array( $available ) ) {
+        return array_map( 'intval', $available );
+    }
+
+    $blocked = array_map( 'intval', (array) get_post_meta( $post_id, '_ll_svc_blocked_days', true ) );
+    if ( empty( $blocked ) ) {
+        return range( 0, 6 );
+    }
+
+    return array_values( array_diff( range( 0, 6 ), $blocked ) );
+}
+
+/**
+ * Blocked weekdays for one service (calendar context).
+ */
+function ll_sched_get_service_blocked_days( $post_id, $global_blocked = null ) {
+    if ( null === $global_blocked ) {
+        $global_blocked = array_map( 'intval', (array) get_option( 'll_sched_blocked_days', array() ) );
+    }
+
+    $use_custom = get_post_meta( $post_id, '_ll_svc_use_custom', true ) === '1';
+    if ( ! $use_custom ) {
+        return $global_blocked;
+    }
+
+    $available   = ll_sched_get_service_available_days( $post_id );
+    $svc_blocked = array_values( array_diff( range( 0, 6 ), $available ) );
+    $mode        = get_post_meta( $post_id, '_ll_svc_schedule_mode', true ) ?: 'combine';
+
+    if ( $mode === 'replace' ) {
+        return $svc_blocked;
+    }
+
+    return array_values( array_unique( array_merge( $global_blocked, $svc_blocked ) ) );
+}
+
+/**
+ * Whether a service allows booking on a given weekday.
+ */
+function ll_sched_service_allows_weekday( $post_id, $weekday, $global_blocked = null ) {
+    $blocked = ll_sched_get_service_blocked_days( $post_id, $global_blocked );
+    return ! in_array( (int) $weekday, $blocked, true );
+}
+
+/**
+ * Whether a service matches property size / city filters.
+ */
+function ll_sched_service_matches_filters( $post_id, $property_size, $city ) {
+    $sizes  = array_filter( (array) get_post_meta( $post_id, '_ll_svc_property_sizes', true ) );
+    $cities = array_filter( (array) get_post_meta( $post_id, '_ll_svc_cities', true ) );
+
+    if ( ! empty( $sizes ) && $property_size !== '' && ! in_array( $property_size, $sizes, true ) ) {
+        return false;
+    }
+
+    if ( ! empty( $cities ) && $city !== '' ) {
+        $city_lower = strtolower( trim( $city ) );
+        $match      = false;
+        foreach ( $cities as $c ) {
+            if ( strtolower( trim( $c ) ) === $city_lower ) {
+                $match = true;
+                break;
+            }
+        }
+        if ( ! $match ) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+/**
+ * Whether a service allows a specific date (weekday + days off).
+ */
+function ll_sched_service_allows_date( $post_id, $date, $global_blocked = null ) {
+    if ( null === $global_blocked ) {
+        $global_blocked = array_map( 'intval', (array) get_option( 'll_sched_blocked_days', array() ) );
+    }
+
+    $date_obj = DateTime::createFromFormat( 'Y-m-d', $date );
+    if ( ! $date_obj ) {
+        return false;
+    }
+
+    $weekday = (int) $date_obj->format( 'w' );
+    if ( ! ll_sched_service_allows_weekday( $post_id, $weekday, $global_blocked ) ) {
+        return false;
+    }
+
+    $use_custom = get_post_meta( $post_id, '_ll_svc_use_custom', true ) === '1';
+    if ( $use_custom ) {
+        $days_off = (array) get_post_meta( $post_id, '_ll_svc_days_off', true );
+        foreach ( $days_off as $off ) {
+            $off_start = $off['start'] ?? '';
+            $off_end   = $off['end'] ?? $off_start;
+            if ( $off_start && $date >= $off_start && $date <= $off_end ) {
+                return false;
+            }
+        }
+    }
+
+    return true;
+}
+
+/* ─────────────────────────────────────────────
    Helper: get bookings from custom table
 ───────────────────────────────────────────── */
 function ll_sched_get_bookings( $args = array() ) {

@@ -55,13 +55,13 @@ jQuery(function ($) {
         $(this).closest('.ll-days-off-row').fadeOut(150, function () { $(this).remove(); });
     });
 
-    /* ── Day label toggle on checkbox change ── */
+    /* ── Day label styling on checkbox change ── */
     $(document).on('change', '.ll-day-checkboxes input[type="checkbox"]', function () {
         var $lbl = $(this).closest('.ll-day-label');
-        if ($(this).is(':checked')) {
-            $lbl.addClass('ll-day-blocked').removeClass('');
-        } else {
-            $lbl.removeClass('ll-day-blocked');
+        if ($lbl.hasClass('ll-day-available')) {
+            $lbl.toggleClass('ll-day-open', $(this).is(':checked'));
+            return;
         }
+        $lbl.toggleClass('ll-day-open', $(this).is(':checked'));
     });
 });

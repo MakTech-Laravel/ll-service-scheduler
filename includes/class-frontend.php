@@ -45,16 +45,20 @@ class LL_Sched_Frontend {
         $data = array();
         foreach ( $services as $id ) {
             $use_custom = get_post_meta( $id, '_ll_svc_use_custom', true ) === '1';
-            if ( ! $use_custom ) {
-                $data[ $id ] = array( 'useCustom' => false );
-                continue;
-            }
-            $data[ $id ] = array(
-                'useCustom'   => true,
-                'blockedDays' => array_map( 'intval', (array) get_post_meta( $id, '_ll_svc_blocked_days', true ) ),
-                'timeSlots'   => (array) get_post_meta( $id, '_ll_svc_time_slots', true ),
-                'daysOff'     => (array) get_post_meta( $id, '_ll_svc_days_off', true ),
+            $entry      = array(
+                'useCustom'      => $use_custom,
+                'propertySizes'  => array_values( (array) get_post_meta( $id, '_ll_svc_property_sizes', true ) ),
+                'cities'         => array_values( (array) get_post_meta( $id, '_ll_svc_cities', true ) ),
             );
+
+            if ( $use_custom ) {
+                $entry['scheduleMode']  = get_post_meta( $id, '_ll_svc_schedule_mode', true ) ?: 'combine';
+                $entry['availableDays'] = ll_sched_get_service_available_days( $id );
+                $entry['timeSlots']     = (array) get_post_meta( $id, '_ll_svc_time_slots', true );
+                $entry['daysOff']       = (array) get_post_meta( $id, '_ll_svc_days_off', true );
+            }
+
+            $data[ $id ] = $entry;
         }
         return $data;
     }

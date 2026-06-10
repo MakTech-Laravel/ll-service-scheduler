@@ -62,10 +62,7 @@ class LL_Sched_Ajax {
             wp_send_json_error( 'Past dates cannot be booked.' );
         }
 
-        $blocked_days = array_map( 'intval', (array) get_option( 'll_sched_blocked_days', array() ) );
-        if ( in_array( (int) $date_obj->format( 'w' ), $blocked_days, true ) ) {
-            wp_send_json_error( 'The selected date is not available for booking.' );
-        }
+        $global_blocked = array_map( 'intval', (array) get_option( 'll_sched_blocked_days', array() ) );
 
         /* ── 4. Resolve services ── */
         $valid_ids   = array();
@@ -77,23 +74,12 @@ class LL_Sched_Ajax {
             $post = get_post( $sid );
             if ( ! $post || $post->post_type !== 'services' ) continue;
 
-            // Check per-service blocked days
-            $use_custom = get_post_meta( $sid, '_ll_svc_use_custom', true ) === '1';
-            if ( $use_custom ) {
-                $svc_blocked = array_map( 'intval', (array) get_post_meta( $sid, '_ll_svc_blocked_days', true ) );
-                if ( in_array( (int) $date_obj->format( 'w' ), $svc_blocked, true ) ) {
-                    wp_send_json_error( '"' . $post->post_title . '" is not available on the selected date.' );
-                }
-                // Check days off for this service
-                $days_off = (array) get_post_meta( $sid, '_ll_svc_days_off', true );
-                foreach ( $days_off as $off ) {
-                    $off_start = $off['start'] ?? '';
-                    $off_end   = $off['end']   ?? $off_start;
-                    if ( $off_start && $date >= $off_start && $date <= $off_end ) {
-                        $lbl = ! empty( $off['label'] ) ? ' (' . $off['label'] . ')' : '';
-                        wp_send_json_error( '"' . $post->post_title . '" is unavailable on the selected date' . $lbl . '.' );
-                    }
-                }
+            if ( ! ll_sched_service_matches_filters( $sid, $property_size, $city ) ) {
+                wp_send_json_error( '"' . $post->post_title . '" is not available for the selected property size or city.' );
+            }
+
+            if ( ! ll_sched_service_allows_date( $sid, $date, $global_blocked ) ) {
+                wp_send_json_error( '"' . $post->post_title . '" is not available on the selected date.' );
             }
 
             $price        = floatval( get_post_meta( $sid, 'price', true ) );

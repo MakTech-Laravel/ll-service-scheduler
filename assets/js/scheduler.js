@@ -17,21 +17,48 @@
     var NONCE          = cfg.nonce        || '';
     var SERVICE_DATA   = cfg.serviceData  || {}; // per-service overrides keyed by post ID
 
+    function complementDays(available) {
+        var blocked = [];
+        for (var d = 0; d <= 6; d++) {
+            if (available.indexOf(d) === -1) blocked.push(d);
+        }
+        return blocked;
+    }
+
+    function unionDays(a, b) {
+        var merged = a.slice();
+        b.forEach(function (d) {
+            if (merged.indexOf(d) === -1) merged.push(d);
+        });
+        return merged;
+    }
+
     /**
-     * Get the effective blocked days for the current selection.
-     * If all selected services use a custom schedule, merge their blocked days.
-     * Otherwise fall back to the global blocked days.
+     * Blocked weekdays for one service (respects combine vs replace mode).
+     */
+    function getServiceBlockedDays(serviceId) {
+        var sd = SERVICE_DATA[serviceId];
+        if (!sd || !sd.useCustom) {
+            return BLOCKED_DAYS.slice();
+        }
+        var available  = sd.availableDays || [];
+        var svcBlocked = complementDays(available);
+        if (sd.scheduleMode === 'replace') {
+            return svcBlocked;
+        }
+        return unionDays(BLOCKED_DAYS, svcBlocked);
+    }
+
+    /**
+     * Union of blocked days across selected services (date must be allowed by all).
      */
     function getEffectiveBlockedDays() {
-        if (!selectedServices.length) return BLOCKED_DAYS;
-        var merged = [].concat(BLOCKED_DAYS);
+        if (!selectedServices.length) return BLOCKED_DAYS.slice();
+        var merged = [];
         selectedServices.forEach(function (s) {
-            var sd = SERVICE_DATA[s.id];
-            if (sd && sd.useCustom && sd.blockedDays) {
-                sd.blockedDays.forEach(function (d) {
-                    if (merged.indexOf(d) === -1) merged.push(d);
-                });
-            }
+            getServiceBlockedDays(s.id).forEach(function (d) {
+                if (merged.indexOf(d) === -1) merged.push(d);
+            });
         });
         return merged;
     }
@@ -97,8 +124,94 @@
         elMsg         = document.getElementById('llMsg');
 
         initServiceCheckboxes();
+        initFilters();
         initCalendar();
         initSubmit();
+        applyServiceFilters();
+    }
+
+    /* ══════════════════════════════════════════
+       SERVICE FILTERS (property size / city)
+    ══════════════════════════════════════════ */
+    function parseJsonAttr(str) {
+        if (!str) return [];
+        try {
+            var parsed = JSON.parse(str);
+            return Array.isArray(parsed) ? parsed : [];
+        } catch (e) {
+            return [];
+        }
+    }
+
+    function normalizeCity(city) {
+        return (city || '').trim().toLowerCase();
+    }
+
+    function serviceMatchesFilters(item, propSize, city) {
+        var sizes  = parseJsonAttr(item.dataset.sizes);
+        var cities = parseJsonAttr(item.dataset.cities);
+
+        if (propSize && sizes.length && sizes.indexOf(propSize) === -1) {
+            return false;
+        }
+        if (city && cities.length) {
+            var cityNorm = normalizeCity(city);
+            var match = false;
+            for (var i = 0; i < cities.length; i++) {
+                if (normalizeCity(cities[i]) === cityNorm) {
+                    match = true;
+                    break;
+                }
+            }
+            if (!match) return false;
+        }
+        return true;
+    }
+
+    function applyServiceFilters() {
+        var propSizeEl = document.getElementById('llPropSize');
+        var cityEl     = document.getElementById('llCity');
+        var propSize   = propSizeEl ? propSizeEl.value : '';
+        var city       = cityEl ? cityEl.value : '';
+        var changed    = false;
+
+        document.querySelectorAll('.ll-svc-item').forEach(function (item) {
+            var visible = serviceMatchesFilters(item, propSize, city);
+            item.classList.toggle('ll-svc-hidden', !visible);
+            item.style.display = visible ? '' : 'none';
+
+            if (!visible) {
+                var cb = item.querySelector('.ll-svc-cb');
+                if (cb && cb.checked) {
+                    cb.checked = false;
+                    onServiceChange(item, cb);
+                    changed = true;
+                }
+            }
+        });
+
+        document.querySelectorAll('.ll-cat-group').forEach(function (group) {
+            var visibleCount = 0;
+            group.querySelectorAll('.ll-svc-item').forEach(function (item) {
+                if (!item.classList.contains('ll-svc-hidden')) visibleCount++;
+            });
+            group.style.display = visibleCount > 0 ? '' : 'none';
+        });
+
+        if (changed && elCalGrid) renderCalendar();
+    }
+
+    function initFilters() {
+        var propSizeEl = document.getElementById('llPropSize');
+        var cityEl     = document.getElementById('llCity');
+
+        if (propSizeEl) {
+            propSizeEl.addEventListener('change', applyServiceFilters);
+        }
+        if (cityEl) {
+            cityEl.addEventListener('input', applyServiceFilters);
+            cityEl.addEventListener('change', applyServiceFilters);
+        }
     }
 
     /* ══════════════════════════════════════════

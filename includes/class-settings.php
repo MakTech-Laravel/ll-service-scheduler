@@ -140,7 +140,7 @@ class LL_Sched_Settings {
         $slots = (array) get_option( 'll_sched_time_slots', array() );
         ?>
         <p>Configure the global time slots. Individual services can override these with their own schedule (set in the service edit screen).</p>
-        <table class="widefat ll-slots-table" style="max-width:700px;">
+        <table class="widefat ll-slots-table" style="width:100%;">
             <thead>
                 <tr><th>Label (shown to user)</th><th>Start</th><th>End</th><th>Remove</th></tr>
             </thead>

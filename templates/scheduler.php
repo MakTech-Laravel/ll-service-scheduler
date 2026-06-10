@@ -83,14 +83,18 @@ defined( 'ABSPATH' ) || exit;
             <div class="ll-services-grid">
 
                 <?php foreach ( $services as $svc ) :
-                    $price = get_post_meta( $svc->ID, 'price', true );
-                    $img   = get_the_post_thumbnail_url( $svc->ID, 'medium' );
+                    $price          = get_post_meta( $svc->ID, 'price', true );
+                    $img            = get_the_post_thumbnail_url( $svc->ID, 'medium' );
+                    $svc_sizes      = array_values( (array) get_post_meta( $svc->ID, '_ll_svc_property_sizes', true ) );
+                    $svc_cities     = array_values( (array) get_post_meta( $svc->ID, '_ll_svc_cities', true ) );
                 ?>
 
                 <label class="ll-svc-item"
                        data-id="<?php echo $svc->ID; ?>"
                        data-price="<?php echo esc_attr( floatval( $price ) ); ?>"
-                       data-title="<?php echo esc_attr( $svc->post_title ); ?>">
+                       data-title="<?php echo esc_attr( $svc->post_title ); ?>"
+                       data-sizes="<?php echo esc_attr( wp_json_encode( $svc_sizes ) ); ?>"
+                       data-cities="<?php echo esc_attr( wp_json_encode( $svc_cities ) ); ?>">
 
                     <div class="ll-svc-left">
                         <input type="checkbox"

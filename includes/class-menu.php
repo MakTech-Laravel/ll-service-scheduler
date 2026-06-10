@@ -321,6 +321,7 @@ class LL_Sched_Menu {
             </div>
 
             <!-- Bookings Table -->
+            <div class="ll-bookings-table-wrap">
             <table class="widefat ll-bookings-table">
                 <thead>
                     <tr>
@@ -382,6 +383,7 @@ class LL_Sched_Menu {
                 <?php endif; ?>
                 </tbody>
             </table>
+            </div>
 
             <!-- Pagination -->
             <?php if ( $total_pages > 1 ) : ?>
