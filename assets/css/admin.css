@@ -1,0 +1,231 @@
+/* ================================================================
+   LL Service Scheduler — Admin Styles v2
+   ================================================================ */
+
+/* ── Shared wrap ── */
+.ll-admin-wrap { max-width: 1200px; }
+
+.ll-page-heading {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #1d2327;
+    margin-bottom: 20px;
+}
+.ll-page-heading .dashicons { font-size: 1.4rem; color: #c8a84b; }
+
+/* ── Stat Cards ── */
+.ll-stat-cards {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 14px;
+    margin-bottom: 28px;
+}
+@media (max-width: 1100px) { .ll-stat-cards { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 700px)  { .ll-stat-cards { grid-template-columns: repeat(2, 1fr); } }
+
+.ll-stat-card {
+    background: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 10px;
+    padding: 16px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+    transition: box-shadow 0.2s;
+}
+.ll-stat-card:hover { box-shadow: 0 3px 10px rgba(0,0,0,0.1); }
+
+.ll-stat-icon { font-size: 28px; }
+.ll-stat-icon .dashicons { font-size: 28px; width: 28px; height: 28px; }
+
+.ll-stat-num   { font-size: 1.6rem; font-weight: 800; color: #1d2327; line-height: 1; }
+.ll-stat-label { font-size: 0.78rem; color: #888; margin-top: 3px; }
+
+/* Card accent colors */
+.ll-stat-total     .dashicons { color: #2271b1; }
+.ll-stat-pending   .dashicons { color: #e6a817; }
+.ll-stat-confirmed .dashicons { color: #1a9e5c; }
+.ll-stat-revenue   .dashicons { color: #c8a84b; }
+.ll-stat-services  .dashicons { color: #8a5cf6; }
+.ll-stat-cancelled .dashicons { color: #d63638; }
+
+/* ── Dashboard two-column layout ── */
+.ll-dash-columns {
+    display: grid;
+    grid-template-columns: 1fr 300px;
+    gap: 20px;
+    align-items: start;
+}
+@media (max-width: 960px) { .ll-dash-columns { grid-template-columns: 1fr; } }
+
+.ll-dash-panel {
+    background: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.ll-panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 18px;
+    border-bottom: 1px solid #f0f0f0;
+    background: #fafafa;
+}
+.ll-panel-header h2 { margin: 0; font-size: 1rem; font-weight: 700; }
+
+/* Recent bookings table */
+.ll-recent-table { border: none !important; }
+.ll-recent-table th, .ll-recent-table td { padding: 10px 14px !important; }
+
+/* ── Status badges ── */
+.ll-status-badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+.ll-status-pending   { background: #fff3cd; color: #856404; }
+.ll-status-paid      { background: #d1ecf1; color: #0c5460; }
+.ll-status-confirmed { background: #d4edda; color: #155724; }
+.ll-status-cancelled { background: #f8d7da; color: #721c24; }
+.ll-status-refunded  { background: #e2d9f3; color: #4a235a; }
+
+/* ── Quick actions ── */
+.ll-quick-actions { padding: 14px; display: flex; flex-direction: column; gap: 8px; }
+.ll-qa-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 14px;
+    background: #f8f8f8;
+    border: 1px solid #ddd;
+    border-radius: 7px;
+    color: #2271b1;
+    font-size: 0.88rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: background 0.15s, border-color 0.15s;
+}
+.ll-qa-btn:hover { background: #fffbf2; border-color: #c8a84b; color: #c8a84b; }
+.ll-qa-btn .dashicons { font-size: 16px; width: 16px; height: 16px; color: inherit; }
+
+.ll-shortcode-info {
+    margin: 0 14px 14px;
+    padding: 12px;
+    background: #f0f7ff;
+    border: 1px solid #bce0fd;
+    border-radius: 6px;
+}
+.ll-shortcode-info code {
+    display: block;
+    padding: 6px 10px;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 0.95rem;
+    color: #c0392b;
+    margin-top: 6px;
+}
+
+/* ── Bookings list ── */
+.ll-bookings-filters { margin-bottom: 16px; }
+.ll-filter-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+
+.ll-bookings-table th, .ll-bookings-table td {
+    padding: 10px 12px !important;
+    vertical-align: top;
+}
+.ll-bookings-table tbody tr:hover { background: #f9f9f9; }
+
+.ll-status-select {
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    padding: 4px 6px;
+    font-size: 0.82rem;
+    cursor: pointer;
+}
+
+/* ── Settings page ── */
+.ll-settings-body {
+    background: #fff;
+    border: 1px solid #ccd0d4;
+    border-top: none;
+    padding: 20px 24px;
+    margin-bottom: 20px;
+}
+.ll-settings-body .form-table th { width: 220px; }
+
+.ll-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 6px;
+    align-items: center;
+}
+
+.ll-day-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 14px;
+    border: 1.5px solid #ddd;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.88rem;
+    font-weight: 500;
+    transition: border-color 0.15s, background 0.15s;
+}
+.ll-day-blocked { background: #fff5f5; border-color: #f5c6c6; color: #c00; }
+.ll-day-open    { background: #f0fff4; border-color: #b7e4cc; color: #155724; }
+.ll-day-label input[type="checkbox"] { margin: 0; }
+
+.ll-slots-table { margin-bottom: 4px; }
+.ll-slots-table td { padding: 6px 8px !important; }
+.ll-slots-table input[type="time"] { width: 120px; }
+
+/* ── Service meta box ── */
+.ll-svc-meta-wrap { padding: 4px 0; }
+
+.ll-svc-toggle-row {
+    padding: 12px;
+    background: #f0f7ff;
+    border: 1px solid #bce0fd;
+    border-radius: 6px;
+    margin-bottom: 16px;
+}
+
+.ll-svc-section {
+    border: 1px solid #e8e8e8;
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 16px;
+    background: #fafafa;
+}
+.ll-svc-section h4 {
+    margin: 0 0 6px;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #1d2327;
+}
+
+.ll-day-checkboxes { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+
+.ll-days-off-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-bottom: 8px;
+    padding: 8px;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+}

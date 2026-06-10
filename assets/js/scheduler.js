@@ -10,11 +10,61 @@
        CONFIG  (injected from PHP via wp_localize_script)
     ══════════════════════════════════════════ */
     var cfg            = window.llSched || {};
-    var BLOCKED_DAYS   = cfg.blockedDays || []; // JS day: 0=Sun, 6=Sat
-    var TIME_SLOTS     = cfg.timeSlots      || [];
-    var MODE           = cfg.selectionMode  || 'multiple'; // 'single' | 'multiple'
-    var AJAX_URL       = cfg.ajaxUrl        || '';
-    var NONCE          = cfg.nonce          || '';
+    var BLOCKED_DAYS   = cfg.blockedDays  || []; // global blocked days (0=Sun…6=Sat)
+    var TIME_SLOTS     = cfg.timeSlots    || []; // global time slots
+    var MODE           = cfg.selectionMode || 'multiple';
+    var AJAX_URL       = cfg.ajaxUrl      || '';
+    var NONCE          = cfg.nonce        || '';
+    var SERVICE_DATA   = cfg.serviceData  || {}; // per-service overrides keyed by post ID
+
+    /**
+     * Get the effective blocked days for the current selection.
+     * If all selected services use a custom schedule, merge their blocked days.
+     * Otherwise fall back to the global blocked days.
+     */
+    function getEffectiveBlockedDays() {
+        if (!selectedServices.length) return BLOCKED_DAYS;
+        var merged = [].concat(BLOCKED_DAYS);
+        selectedServices.forEach(function (s) {
+            var sd = SERVICE_DATA[s.id];
+            if (sd && sd.useCustom && sd.blockedDays) {
+                sd.blockedDays.forEach(function (d) {
+                    if (merged.indexOf(d) === -1) merged.push(d);
+                });
+            }
+        });
+        return merged;
+    }
+
+    /**
+     * Get effective time slots: if the FIRST selected service has custom slots, use those.
+     * Otherwise fall back to global.
+     */
+    function getEffectiveTimeSlots() {
+        if (!selectedServices.length) return TIME_SLOTS;
+        var first = SERVICE_DATA[selectedServices[0].id];
+        if (first && first.useCustom && first.timeSlots && first.timeSlots.length) {
+            return first.timeSlots;
+        }
+        return TIME_SLOTS;
+    }
+
+    /**
+     * Check if a date string (YYYY-MM-DD) falls in any service's days-off range.
+     */
+    function isDateInDaysOff(dateStr) {
+        for (var i = 0; i < selectedServices.length; i++) {
+            var sd = SERVICE_DATA[selectedServices[i].id];
+            if (!sd || !sd.useCustom || !sd.daysOff) continue;
+            for (var j = 0; j < sd.daysOff.length; j++) {
+                var off = sd.daysOff[j];
+                if (off.start && dateStr >= off.start && dateStr <= (off.end || off.start)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
 
     /* ══════════════════════════════════════════
        STATE
@@ -103,6 +153,8 @@
 
         updateSummary();
         toggleBookingSection();
+        // Re-render calendar so per-service blocked days apply immediately
+        if (elCalGrid) renderCalendar();
     }
 
     function toggleBookingSection() {
@@ -203,7 +255,8 @@
             var jsDay     = new Date(calYear, calMonth, d).getDay(); // 0=Sun ... 6=Sat
             var dateStr   = formatDate(calYear, calMonth, d);
             var isPast    = dateStr < todayStr;
-            var isBlocked = BLOCKED_DAYS.indexOf(jsDay) !== -1;
+            var effectiveBlocked = getEffectiveBlockedDays();
+            var isBlocked = effectiveBlocked.indexOf(jsDay) !== -1 || isDateInDaysOff(dateStr);
 
             if (isPast || isBlocked) {
                 cell.classList.add('ll-cal-disabled');
@@ -259,13 +312,11 @@
     function isDateBookable(dateStr) {
         var now      = new Date();
         var todayStr = formatDate(now.getFullYear(), now.getMonth(), now.getDate());
-        if (dateStr < todayStr) {
-            return false;
-        }
-
+        if (dateStr < todayStr) return false;
+        if (isDateInDaysOff(dateStr)) return false;
         var parts = dateStr.split('-');
         var jsDay = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10)).getDay();
-        return BLOCKED_DAYS.indexOf(jsDay) === -1;
+        return getEffectiveBlockedDays().indexOf(jsDay) === -1;
     }
 
     /* ══════════════════════════════════════════
@@ -275,12 +326,13 @@
         elTimesGrid.innerHTML = '';
         selectedTime = null;
 
-        if (!TIME_SLOTS.length) {
+        var slots = getEffectiveTimeSlots();
+        if (!slots.length) {
             elTimesGrid.innerHTML = '<p style="color:#888;font-style:italic;">No time slots configured. Please contact the administrator.</p>';
             return;
         }
 
-        TIME_SLOTS.forEach(function (slot) {
+        slots.forEach(function (slot) {
             var btn = document.createElement('button');
             btn.type = 'button';
             btn.className = 'll-time-btn';
