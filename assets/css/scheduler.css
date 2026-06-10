@@ -7,9 +7,9 @@
    WRAP
 ───────────────────────────────────────── */
 .ll-wrap {
-    max-width: 960px;
+    max-width: 1240px;
     margin: 0 auto;
-    padding: 20px 16px 60px;
+    padding: 20px 20px 60px;
     font-family: inherit;
     color: #222;
     box-sizing: border-box;
@@ -133,7 +133,7 @@
     }
 }
 
-@media (min-width: 1024px) {
+@media (min-width: 1200px) {
     .ll-services-grid {
         grid-template-columns: repeat(3, 1fr);
     }
@@ -154,7 +154,7 @@
     transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
     user-select: none;
     background: #fff;
-    min-height: 96px;
+    height: 112px;
 }
 
 .ll-svc-item:hover {
@@ -212,25 +212,26 @@
     line-height: 1.3;
 }
 
-/* Right side: full-height image */
+/* Right side: fixed-ratio image crop */
 .ll-svc-right {
     flex: 1;
     min-width: 0;
-    align-self: stretch;
+    height: 112px;
+    overflow: hidden;
+    background: #f0f0f0;
 }
 
 .ll-svc-right img {
     width: 100%;
-    height: 100%;
-    min-height: 96px;
+    height: 112px;
     object-fit: cover;
+    object-position: center;
     display: block;
 }
 
 .ll-no-img {
     width: 100%;
-    height: 100%;
-    min-height: 96px;
+    height: 112px;
     background: linear-gradient(135deg, #e8f4e8 0%, #b8d4b8 50%, #8ec08e 100%);
 }
 
