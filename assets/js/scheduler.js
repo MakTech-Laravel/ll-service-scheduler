@@ -147,11 +147,28 @@
         return (value || '').trim().toLowerCase();
     }
 
+    function filterTextMatches(userText, allowedText) {
+        var a = normalizeFilterText(userText);
+        var b = normalizeFilterText(allowedText);
+        if (!a || !b) return false;
+        return a === b || a.indexOf(b) !== -1 || b.indexOf(a) !== -1;
+    }
+
     function listContainsValue(list, value) {
         if (!value || !list.length) return true;
         var norm = normalizeFilterText(value);
         for (var i = 0; i < list.length; i++) {
             if (normalizeFilterText(list[i]) === norm) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    function listMatchesPartial(list, value) {
+        if (!value || !list.length) return true;
+        for (var i = 0; i < list.length; i++) {
+            if (filterTextMatches(value, list[i])) {
                 return true;
             }
         }
@@ -169,7 +186,7 @@
         if (city && cities.length && !listContainsValue(cities, city)) {
             return false;
         }
-        if (address && addresses.length && !listContainsValue(addresses, address)) {
+        if (address && addresses.length && !listMatchesPartial(addresses, address)) {
             return false;
         }
         return true;

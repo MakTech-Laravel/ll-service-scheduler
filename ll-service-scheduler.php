@@ -350,6 +350,33 @@ function ll_sched_service_allows_weekday( $post_id, $weekday, $global_blocked = 
 }
 
 /**
+ * Case-insensitive match: exact, or either string contains the other.
+ */
+function ll_sched_filter_text_matches( $user_text, $allowed_text ) {
+    $a = strtolower( trim( (string) $user_text ) );
+    $b = strtolower( trim( (string) $allowed_text ) );
+    if ( $a === '' || $b === '' ) {
+        return false;
+    }
+    return $a === $b || strpos( $a, $b ) !== false || strpos( $b, $a ) !== false;
+}
+
+/**
+ * Whether user input matches any value in an allowed list (partial or exact).
+ */
+function ll_sched_list_matches_filter( $user_value, $allowed_list ) {
+    if ( trim( (string) $user_value ) === '' || empty( $allowed_list ) ) {
+        return true;
+    }
+    foreach ( $allowed_list as $item ) {
+        if ( ll_sched_filter_text_matches( $user_value, $item ) ) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/**
  * Whether a service matches property size / city / address filters.
  */
 function ll_sched_service_matches_filters( $post_id, $property_size, $city, $address = '' ) {
@@ -375,18 +402,8 @@ function ll_sched_service_matches_filters( $post_id, $property_size, $city, $add
         }
     }
 
-    if ( ! empty( $addresses ) && $address !== '' ) {
-        $address_lower = strtolower( trim( $address ) );
-        $match         = false;
-        foreach ( $addresses as $a ) {
-            if ( strtolower( trim( $a ) ) === $address_lower ) {
-                $match = true;
-                break;
-            }
-        }
-        if ( ! $match ) {
-            return false;
-        }
+    if ( ! empty( $addresses ) && $address !== '' && ! ll_sched_list_matches_filter( $address, $addresses ) ) {
+        return false;
     }
 
     return true;

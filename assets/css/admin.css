@@ -246,6 +246,40 @@ body.ll-sched-admin-page .ll-bookings-table-wrap {
 
 .ll-day-checkboxes { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
 
+.ll-svc-address-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    margin-top: 10px;
+}
+.ll-svc-address-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+    min-height: 32px;
+}
+.ll-svc-address-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 8px 4px 10px;
+    background: #fff;
+    border: 1px solid #c3c4c7;
+    border-radius: 4px;
+    font-size: 13px;
+}
+.ll-svc-address-rm {
+    border: none;
+    background: transparent;
+    color: #b32d2e;
+    cursor: pointer;
+    font-size: 16px;
+    line-height: 1;
+    padding: 0 2px;
+}
+
 .ll-days-off-row {
     display: flex;
     gap: 8px;
