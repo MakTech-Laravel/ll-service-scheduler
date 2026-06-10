@@ -33,12 +33,18 @@ defined( 'ABSPATH' ) || exit;
 
         <div class="ll-field">
             <label for="llCity">Select City</label>
-            <select id="llCity">
-                <option value="">City / Town</option>
+            <input type="text"
+                   id="llCity"
+                   placeholder="City / Town"
+                   list="llCityList"
+                   autocomplete="address-level2">
+            <?php if ( ! empty( $cities ) ) : ?>
+            <datalist id="llCityList">
                 <?php foreach ( $cities as $c ) : ?>
-                <option value="<?php echo esc_attr( $c ); ?>"><?php echo esc_html( $c ); ?></option>
+                <option value="<?php echo esc_attr( $c ); ?>">
                 <?php endforeach; ?>
-            </select>
+            </datalist>
+            <?php endif; ?>
         </div>
 
         <div class="ll-field">
