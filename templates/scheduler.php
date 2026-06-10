@@ -99,7 +99,7 @@ defined( 'ABSPATH' ) || exit;
                     $img            = get_the_post_thumbnail_url( $svc->ID, 'medium' );
                     $svc_sizes      = array_values( (array) get_post_meta( $svc->ID, '_ll_svc_property_sizes', true ) );
                     $svc_cities     = array_values( (array) get_post_meta( $svc->ID, '_ll_svc_cities', true ) );
-                    $svc_addresses  = array_values( (array) get_post_meta( $svc->ID, '_ll_svc_addresses', true ) );
+                    $svc_addresses  = array_values( array_filter( (array) get_post_meta( $svc->ID, '_ll_svc_addresses', true ) ) );
                 ?>
 
                 <label class="ll-svc-item"

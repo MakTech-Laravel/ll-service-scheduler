@@ -147,11 +147,16 @@
         return (value || '').trim().toLowerCase();
     }
 
-    function filterTextMatches(userText, allowedText) {
-        var a = normalizeFilterText(userText);
-        var b = normalizeFilterText(allowedText);
-        if (!a || !b) return false;
-        return a === b || a.indexOf(b) !== -1 || b.indexOf(a) !== -1;
+    function parseDataList(item, attr) {
+        return parseJsonAttr(item.getAttribute('data-' + attr) || '');
+    }
+
+    /** Partial match: user text is contained in service address, or the reverse. */
+    function partialTextMatch(userText, serviceText) {
+        var user    = normalizeFilterText(userText);
+        var service = normalizeFilterText(serviceText);
+        if (!user || !service) return false;
+        return service.indexOf(user) !== -1 || user.indexOf(service) !== -1;
     }
 
     function listContainsValue(list, value) {
@@ -165,10 +170,10 @@
         return false;
     }
 
-    function listMatchesPartial(list, value) {
-        if (!value || !list.length) return true;
+    function listMatchesPartial(list, userInput) {
+        if (!userInput || !list.length) return true;
         for (var i = 0; i < list.length; i++) {
-            if (filterTextMatches(value, list[i])) {
+            if (partialTextMatch(userInput, list[i])) {
                 return true;
             }
         }
@@ -176,9 +181,9 @@
     }
 
     function serviceMatchesFilters(item, propSize, city, address) {
-        var sizes     = parseJsonAttr(item.dataset.sizes);
-        var cities    = parseJsonAttr(item.dataset.cities);
-        var addresses = parseJsonAttr(item.dataset.addresses);
+        var sizes     = parseDataList(item, 'sizes');
+        var cities    = parseDataList(item, 'cities');
+        var addresses = parseDataList(item, 'addresses');
 
         if (propSize && sizes.length && sizes.indexOf(propSize) === -1) {
             return false;

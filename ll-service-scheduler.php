@@ -13,7 +13,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'LL_SCHED_VER',  '2.0.2' );
+define( 'LL_SCHED_VER',  '2.0.3' );
 define( 'LL_SCHED_DIR',  plugin_dir_path( __FILE__ ) );
 define( 'LL_SCHED_URL',  plugin_dir_url( __FILE__ ) );
 define( 'LL_SCHED_FILE', __FILE__ );
@@ -350,15 +350,15 @@ function ll_sched_service_allows_weekday( $post_id, $weekday, $global_blocked = 
 }
 
 /**
- * Case-insensitive match: exact, or either string contains the other.
+ * Case-insensitive partial match (either string contains the other).
  */
 function ll_sched_filter_text_matches( $user_text, $allowed_text ) {
-    $a = strtolower( trim( (string) $user_text ) );
-    $b = strtolower( trim( (string) $allowed_text ) );
-    if ( $a === '' || $b === '' ) {
+    $user    = strtolower( trim( (string) $user_text ) );
+    $allowed = strtolower( trim( (string) $allowed_text ) );
+    if ( $user === '' || $allowed === '' ) {
         return false;
     }
-    return $a === $b || strpos( $a, $b ) !== false || strpos( $b, $a ) !== false;
+    return strpos( $allowed, $user ) !== false || strpos( $user, $allowed ) !== false;
 }
 
 /**
