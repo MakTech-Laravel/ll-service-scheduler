@@ -6,6 +6,7 @@ class LL_Sched_Menu {
     public function __construct() {
         add_action( 'admin_menu',            array( $this, 'register_menus' ) );
         add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_assets' ) );
+        add_filter( 'admin_body_class',      array( $this, 'admin_body_class' ) );
         add_action( 'wp_ajax_ll_sched_update_booking_status', array( $this, 'ajax_update_status' ) );
         add_action( 'wp_ajax_ll_sched_delete_booking',        array( $this, 'ajax_delete_booking' ) );
         add_action( 'init',                  array( $this, 'maybe_create_product' ) );
@@ -80,6 +81,14 @@ class LL_Sched_Menu {
     /* ─────────────────────────────────────────────
        Enqueue admin assets (only on our plugin pages)
     ───────────────────────────────────────────── */
+    public function admin_body_class( $classes ) {
+        $screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
+        if ( $screen && strpos( $screen->id, 'll-scheduler' ) !== false ) {
+            $classes .= ' ll-sched-admin-page';
+        }
+        return $classes;
+    }
+
     public function enqueue_assets( $hook ) {
         $our_pages = array(
             'toplevel_page_ll-scheduler',
@@ -124,7 +133,7 @@ class LL_Sched_Menu {
 
         $total     = ll_sched_count_bookings();
         $pending   = ll_sched_count_bookings( 'pending' );
-        $confirmed = ll_sched_count_bookings( 'paid' );
+        $confirmed = ll_sched_count_bookings( 'paid' ) + ll_sched_count_bookings( 'confirmed' );
         $cancelled = ll_sched_count_bookings( 'cancelled' );
 
         // Revenue this month

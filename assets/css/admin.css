@@ -9,6 +9,24 @@
     box-sizing: border-box;
 }
 
+body.ll-sched-admin-page #wpbody-content .wrap.ll-admin-wrap {
+    max-width: none !important;
+    width: auto !important;
+    margin-right: 20px;
+}
+
+body.ll-sched-admin-page #wpbody-content {
+    padding-right: 0;
+}
+
+body.ll-sched-admin-page .ll-stat-cards,
+body.ll-sched-admin-page .ll-dash-columns,
+body.ll-sched-admin-page .ll-settings-body,
+body.ll-sched-admin-page .ll-bookings-table-wrap {
+    width: 100%;
+    max-width: none;
+}
+
 .ll-page-heading {
     display: flex;
     align-items: center;

@@ -13,7 +13,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'LL_SCHED_VER',  '2.0.0' );
+define( 'LL_SCHED_VER',  '2.0.1' );
 define( 'LL_SCHED_DIR',  plugin_dir_path( __FILE__ ) );
 define( 'LL_SCHED_URL',  plugin_dir_url( __FILE__ ) );
 define( 'LL_SCHED_FILE', __FILE__ );
@@ -25,6 +25,7 @@ add_action( 'plugins_loaded', 'll_sched_boot', 5 );
 
 function ll_sched_boot() {
     ll_sched_migrate_options(); // one-time migration v1 → v2
+    ll_sched_repair_orphan_bookings();
 
     require_once LL_SCHED_DIR . 'includes/class-menu.php';
     require_once LL_SCHED_DIR . 'includes/class-settings.php';
@@ -164,6 +165,112 @@ function ll_sched_ensure_woo_product() {
     $new_id = $p->save();
     update_option( 'll_sched_woo_product_id', $new_id );
     return $new_id;
+}
+
+/* ─────────────────────────────────────────────
+   Helper: find booking record from order line item
+───────────────────────────────────────────── */
+function ll_sched_find_booking_for_order_item( $item ) {
+    global $wpdb;
+    $table = $wpdb->prefix . 'll_sched_bookings';
+
+    $date        = $item->get_meta( 'll_date' );
+    $service_ids = $item->get_meta( 'll_service_ids' );
+    $start       = $item->get_meta( 'll_start' );
+
+    if ( ! $date ) {
+        return 0;
+    }
+
+    $where  = array( 'booking_date = %s' );
+    $params = array( $date );
+
+    if ( $service_ids ) {
+        $where[]  = 'service_ids = %s';
+        $params[] = $service_ids;
+    }
+    if ( $start ) {
+        $where[]  = 'start_time = %s';
+        $params[] = $start;
+    }
+
+    $sql = "SELECT id FROM `{$table}` WHERE " . implode( ' AND ', $where ) . ' ORDER BY (order_id = 0) DESC, id DESC LIMIT 1';
+
+    return (int) $wpdb->get_var( $wpdb->prepare( $sql, $params ) ); // phpcs:ignore
+}
+
+/**
+ * One-time repair: link existing bookings to WooCommerce orders and sync status.
+ */
+function ll_sched_repair_orphan_bookings() {
+    if ( get_option( 'll_sched_repaired_booking_links' ) === LL_SCHED_VER || ! class_exists( 'WooCommerce' ) ) {
+        return;
+    }
+
+    global $wpdb;
+    $table   = $wpdb->prefix . 'll_sched_bookings';
+    $orphans = $wpdb->get_results( "SELECT * FROM `{$table}` WHERE order_id = 0 OR order_id IS NULL" ); // phpcs:ignore
+
+    if ( empty( $orphans ) ) {
+        update_option( 'll_sched_repaired_booking_links', LL_SCHED_VER );
+        return;
+    }
+
+    $orders = wc_get_orders( array(
+        'limit'   => 200,
+        'orderby' => 'date',
+        'order'   => 'DESC',
+        'status'  => array( 'processing', 'completed', 'on-hold', 'pending' ),
+    ) );
+
+    foreach ( $orphans as $booking ) {
+        foreach ( $orders as $order ) {
+            foreach ( $order->get_items() as $item ) {
+                $item_date    = $item->get_meta( 'll_date' );
+                $item_service = $item->get_meta( 'll_service_ids' );
+
+                if ( ! $item_date ) {
+                    continue;
+                }
+
+                $match = ( $item_date === $booking->booking_date );
+                if ( $item_service && $booking->service_ids ) {
+                    $match = $match && ( $item_service === $booking->service_ids );
+                }
+
+                if ( ! $match ) {
+                    continue;
+                }
+
+                $order_id = $order->get_id();
+                $status   = 'pending';
+                if ( $order->has_status( array( 'processing', 'completed' ) ) ) {
+                    $status = 'paid';
+                } elseif ( $order->has_status( 'cancelled' ) ) {
+                    $status = 'cancelled';
+                } elseif ( $order->has_status( 'refunded' ) ) {
+                    $status = 'refunded';
+                }
+
+                $wpdb->update(
+                    $table,
+                    array(
+                        'order_id'       => $order_id,
+                        'status'         => $status,
+                        'customer_name'  => trim( $order->get_billing_first_name() . ' ' . $order->get_billing_last_name() ),
+                        'customer_email' => $order->get_billing_email(),
+                        'customer_phone' => $order->get_billing_phone(),
+                    ),
+                    array( 'id' => $booking->id )
+                );
+
+                update_post_meta( $order_id, '_ll_booking_id', $booking->id );
+                break 2;
+            }
+        }
+    }
+
+    update_option( 'll_sched_repaired_booking_links', LL_SCHED_VER );
 }
 
 /* ─────────────────────────────────────────────

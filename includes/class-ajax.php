@@ -19,12 +19,13 @@ class LL_Sched_Ajax {
         add_action( 'wp_ajax_ll_sched_book',        array( $this, 'handle_booking' ) );
         add_action( 'wp_ajax_nopriv_ll_sched_book', array( $this, 'handle_booking' ) );
 
-        // WooCommerce order status hooks → UPDATE appointment (not create)
-        add_action( 'woocommerce_payment_complete',          array( $this, 'on_order_paid' ) );
-        add_action( 'woocommerce_order_status_processing',   array( $this, 'on_order_paid' ) );
-        add_action( 'woocommerce_order_status_completed',    array( $this, 'on_order_completed' ) );
-        add_action( 'woocommerce_order_status_cancelled',    array( $this, 'on_order_cancelled' ) );
-        add_action( 'woocommerce_order_status_refunded',     array( $this, 'on_order_refunded' ) );
+        // WooCommerce hooks → link booking to order and sync payment status
+        add_action( 'woocommerce_checkout_order_processed',  array( $this, 'on_checkout_order_processed' ), 20, 1 );
+        add_action( 'woocommerce_payment_complete',          array( $this, 'on_order_paid' ), 20 );
+        add_action( 'woocommerce_order_status_processing',   array( $this, 'on_order_paid' ), 20 );
+        add_action( 'woocommerce_order_status_completed',    array( $this, 'on_order_paid' ), 20 );
+        add_action( 'woocommerce_order_status_cancelled',    array( $this, 'on_order_cancelled' ), 20 );
+        add_action( 'woocommerce_order_status_refunded',     array( $this, 'on_order_refunded' ), 20 );
     }
 
     /* ═══════════════════════════════════════════════
@@ -160,105 +161,122 @@ class LL_Sched_Ajax {
     }
 
     /* ═══════════════════════════════════════════════
-       STEP 2 — After payment: UPDATE status (not create)
+       STEP 2 — After checkout / payment: link order & sync status
     ═══════════════════════════════════════════════ */
 
-    /** Payment complete / order processing */
-    public function on_order_paid( $order_id ) {
-        $this->update_booking_from_order( $order_id, 'paid', 'paid' );
+    /** Checkout completed — link order ID and customer info (status stays pending until paid). */
+    public function on_checkout_order_processed( $order_id ) {
+        $this->sync_booking_from_order( $order_id, null, null, false );
     }
 
-    /** Order completed */
-    public function on_order_completed( $order_id ) {
-        $this->update_booking_from_order( $order_id, 'confirmed', 'completed' );
+    /** Payment complete / processing / completed */
+    public function on_order_paid( $order_id ) {
+        $this->sync_booking_from_order( $order_id, 'paid', 'paid', true );
     }
 
     /** Order cancelled */
     public function on_order_cancelled( $order_id ) {
-        $this->update_booking_from_order( $order_id, 'cancelled', 'cancelled' );
+        $this->sync_booking_from_order( $order_id, 'cancelled', 'cancelled', true );
     }
 
     /** Order refunded */
     public function on_order_refunded( $order_id ) {
-        $this->update_booking_from_order( $order_id, 'refunded', 'refunded' );
+        $this->sync_booking_from_order( $order_id, 'refunded', 'refunded', true );
     }
 
     /**
-     * Update LL booking table AND Jet APB appointment status.
-     * Also attaches the WC order ID to the booking record.
-     *
-     * @param int    $order_id   WooCommerce order ID
-     * @param string $ll_status  Status for our custom bookings table
-     * @param string $jet_status Status string for Jet APB table
+     * Resolve booking ID from order line item or matching pending record.
      */
-    private function update_booking_from_order( $order_id, $ll_status, $jet_status ) {
-        // Prevent double-processing
-        $done_key = '_ll_order_processed_' . $ll_status;
-        if ( get_post_meta( $order_id, $done_key, true ) ) return;
+    private function resolve_booking_id( $item, $order_id = 0 ) {
+        $booking_id = (int) $item->get_meta( 'll_booking_id' );
+        if ( $booking_id ) {
+            return $booking_id;
+        }
 
+        if ( $order_id ) {
+            $from_order = (int) get_post_meta( $order_id, '_ll_booking_id', true );
+            if ( $from_order ) {
+                return $from_order;
+            }
+        }
+
+        return ll_sched_find_booking_for_order_item( $item );
+    }
+
+    /**
+     * Sync LL booking + Jet APB with WooCommerce order.
+     *
+     * @param int         $order_id
+     * @param string|null $ll_status   Booking status (null = link only, keep current)
+     * @param string|null $jet_status  Jet APB status
+     * @param bool        $add_note    Add order note on status change
+     */
+    private function sync_booking_from_order( $order_id, $ll_status, $jet_status, $add_note ) {
         $order = wc_get_order( $order_id );
-        if ( ! $order ) return;
+        if ( ! $order ) {
+            return;
+        }
+
+        global $wpdb;
+        $table = $wpdb->prefix . 'll_sched_bookings';
 
         foreach ( $order->get_items() as $item ) {
-            $ll_booking_id = (int) $item->get_meta( 'll_booking_id' );
-            $jet_apt_id    = (int) $item->get_meta( 'll_jet_apt_id' );
-
-            if ( ! $ll_booking_id && ! $item->get_meta( 'll_date' ) ) continue; // not our item
-
-            /* ── A. Update our custom bookings table ── */
-            global $wpdb;
-            if ( $ll_booking_id ) {
-                $wpdb->update(
-                    $wpdb->prefix . 'll_sched_bookings',
-                    array( 'status' => $ll_status, 'order_id' => $order_id, 'jet_apt_id' => $jet_apt_id ),
-                    array( 'id' => $ll_booking_id )
-                );
-            } else {
-                // Fallback: find by order ID
-                $wpdb->update(
-                    $wpdb->prefix . 'll_sched_bookings',
-                    array( 'status' => $ll_status, 'order_id' => $order_id ),
-                    array( 'order_id' => 0, 'customer_email' => $order->get_billing_email() )
-                );
+            if ( ! $item->get_meta( 'll_date' ) && ! $item->get_meta( 'll_booking_id' ) ) {
+                continue;
             }
 
-            /* ── B. Update Jet APB appointment ── */
+            $ll_booking_id = $this->resolve_booking_id( $item, $order_id );
+            $jet_apt_id      = (int) $item->get_meta( 'll_jet_apt_id' );
+            if ( ! $jet_apt_id ) {
+                $jet_apt_id = (int) get_post_meta( $order_id, '_ll_jet_apt_id', true );
+            }
+
+            if ( ! $ll_booking_id ) {
+                continue;
+            }
+
+            $name  = trim( $order->get_billing_first_name() . ' ' . $order->get_billing_last_name() );
+            $email = $order->get_billing_email();
+            $phone = $order->get_billing_phone();
+
+            $update = array(
+                'order_id'       => $order_id,
+                'customer_name'  => $name,
+                'customer_email' => $email,
+                'customer_phone' => $phone,
+            );
+
             if ( $jet_apt_id ) {
-                $this->update_jet_appointment_status( $jet_apt_id, $jet_status );
-            } else {
-                // Try to find by order_id in Jet APB table
-                $jet_table = $wpdb->prefix . 'jet_apb_appointments';
-                if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $jet_table ) ) === $jet_table ) {
-                    $found = $wpdb->get_var( $wpdb->prepare( "SELECT ID FROM `{$jet_table}` WHERE order_id = %d LIMIT 1", $order_id ) );
-                    if ( $found ) {
-                        $this->update_jet_appointment_status( (int) $found, $jet_status );
-                    }
+                $update['jet_apt_id'] = $jet_apt_id;
+            }
+
+            if ( $ll_status ) {
+                $update['status'] = $ll_status;
+            }
+
+            $wpdb->update( $table, $update, array( 'id' => $ll_booking_id ) );
+
+            if ( $ll_status && $jet_apt_id ) {
+                $this->update_jet_appointment_status( $jet_apt_id, $jet_status ?: $ll_status );
+                $this->update_jet_appointment_order_id( $jet_apt_id, $order_id );
+            }
+
+            if ( $add_note && $ll_status ) {
+                $note_key = '_ll_sched_noted_' . $ll_status;
+                if ( ! get_post_meta( $order_id, $note_key, true ) ) {
+                    $order->add_order_note( sprintf(
+                        'LL Scheduler: Booking #%d → %s | Services: %s | Date: %s | Time: %s',
+                        $ll_booking_id,
+                        strtoupper( $ll_status ),
+                        $item->get_meta( 'll_services' ),
+                        $item->get_meta( 'll_date' ),
+                        $item->get_meta( 'll_time' )
+                    ) );
+                    update_post_meta( $order_id, $note_key, 1 );
                 }
             }
 
-            /* ── C. Update customer info (available only after checkout) ── */
-            if ( $ll_booking_id ) {
-                $name  = trim( $order->get_billing_first_name() . ' ' . $order->get_billing_last_name() );
-                $email = $order->get_billing_email();
-                $phone = $order->get_billing_phone();
-                $wpdb->update(
-                    $wpdb->prefix . 'll_sched_bookings',
-                    array( 'customer_name' => $name, 'customer_email' => $email, 'customer_phone' => $phone ),
-                    array( 'id' => $ll_booking_id )
-                );
-            }
-
-            /* ── D. Order note ── */
-            $svc_names = $item->get_meta( 'll_services' );
-            $bdate     = $item->get_meta( 'll_date' );
-            $btime     = $item->get_meta( 'll_time' );
-            $order->add_order_note( sprintf(
-                'LL Scheduler: Status → %s | Services: %s | Date: %s | Time: %s | Jet APB ID: %s',
-                strtoupper( $ll_status ), $svc_names, $bdate, $btime,
-                $jet_apt_id ?: 'N/A'
-            ) );
-
-            update_post_meta( $order_id, $done_key, 1 );
+            update_post_meta( $order_id, '_ll_booking_id', $ll_booking_id );
             break;
         }
     }
@@ -327,12 +345,33 @@ class LL_Sched_Ajax {
     private function update_jet_appointment_status( $jet_apt_id, $status ) {
         global $wpdb;
         $table = $wpdb->prefix . 'jet_apb_appointments';
-        if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) ) !== $table ) return false;
+        if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) ) !== $table ) {
+            return false;
+        }
 
         return $wpdb->update(
             $table,
             array( 'status' => sanitize_text_field( $status ) ),
             array( 'ID'     => (int) $jet_apt_id )
+        );
+    }
+
+    private function update_jet_appointment_order_id( $jet_apt_id, $order_id ) {
+        global $wpdb;
+        $table = $wpdb->prefix . 'jet_apb_appointments';
+        if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) ) !== $table ) {
+            return false;
+        }
+
+        $columns = $wpdb->get_col( "DESCRIBE `{$table}`", 0 );
+        if ( ! in_array( 'order_id', $columns, true ) ) {
+            return false;
+        }
+
+        return $wpdb->update(
+            $table,
+            array( 'order_id' => (int) $order_id ),
+            array( 'ID'       => (int) $jet_apt_id )
         );
     }
 

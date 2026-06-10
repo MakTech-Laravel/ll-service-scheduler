@@ -12,6 +12,7 @@ class LL_Sched_Frontend {
         add_filter( 'woocommerce_get_item_data',                array( $this, 'cart_item_display' ), 10, 2 );
         add_filter( 'woocommerce_cart_item_name',               array( $this, 'cart_item_name' ), 10, 3 );
         add_action( 'woocommerce_checkout_create_order_line_item', array( $this, 'save_order_meta' ), 10, 4 );
+        add_action( 'woocommerce_checkout_order_processed',        array( $this, 'save_order_booking_link' ), 10, 1 );
     }
 
     public function enqueue() {
@@ -114,10 +115,36 @@ class LL_Sched_Frontend {
     }
 
     public function save_order_meta( $item, $cart_key, $cart_item, $order ) {
-        $keys = array( 'll_service_ids', 'll_services', 'll_date', 'll_time', 'll_start', 'll_end', 'll_property_size', 'll_city', 'll_address', 'll_notes', 'll_price' );
+        $keys = array(
+            'll_service_ids', 'll_services', 'll_date', 'll_time', 'll_start', 'll_end',
+            'll_property_size', 'll_city', 'll_address', 'll_notes', 'll_price',
+            'll_booking_id', 'll_jet_apt_id',
+        );
         foreach ( $keys as $k ) {
             if ( isset( $cart_item[ $k ] ) ) {
                 $item->add_meta_data( $k, $cart_item[ $k ], true );
+            }
+        }
+    }
+
+    /**
+     * Store booking ID on the order itself as a backup link.
+     */
+    public function save_order_booking_link( $order_id ) {
+        $order = wc_get_order( $order_id );
+        if ( ! $order ) {
+            return;
+        }
+
+        foreach ( $order->get_items() as $item ) {
+            $booking_id = (int) $item->get_meta( 'll_booking_id' );
+            if ( $booking_id ) {
+                update_post_meta( $order_id, '_ll_booking_id', $booking_id );
+                $jet_id = (int) $item->get_meta( 'll_jet_apt_id' );
+                if ( $jet_id ) {
+                    update_post_meta( $order_id, '_ll_jet_apt_id', $jet_id );
+                }
+                break;
             }
         }
     }
