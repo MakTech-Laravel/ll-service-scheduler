@@ -19,13 +19,15 @@ class LL_Sched_Ajax {
         add_action( 'wp_ajax_ll_sched_book',        array( $this, 'handle_booking' ) );
         add_action( 'wp_ajax_nopriv_ll_sched_book', array( $this, 'handle_booking' ) );
 
-        // WooCommerce hooks → link booking to order and sync payment status
-        add_action( 'woocommerce_checkout_order_processed',  array( $this, 'on_checkout_order_processed' ), 20, 1 );
-        add_action( 'woocommerce_payment_complete',          array( $this, 'on_order_paid' ), 20 );
-        add_action( 'woocommerce_order_status_processing',   array( $this, 'on_order_paid' ), 20 );
-        add_action( 'woocommerce_order_status_completed',    array( $this, 'on_order_paid' ), 20 );
-        add_action( 'woocommerce_order_status_cancelled',    array( $this, 'on_order_cancelled' ), 20 );
-        add_action( 'woocommerce_order_status_refunded',     array( $this, 'on_order_refunded' ), 20 );
+        if ( class_exists( 'WooCommerce' ) ) {
+            // WooCommerce hooks → link booking to order and sync payment status
+            add_action( 'woocommerce_checkout_order_processed', array( $this, 'on_checkout_order_processed' ), 20, 1 );
+            add_action( 'woocommerce_payment_complete',         array( $this, 'on_order_paid' ), 20 );
+            add_action( 'woocommerce_order_status_processing',  array( $this, 'on_order_paid' ), 20 );
+            add_action( 'woocommerce_order_status_completed',   array( $this, 'on_order_paid' ), 20 );
+            add_action( 'woocommerce_order_status_cancelled',   array( $this, 'on_order_cancelled' ), 20 );
+            add_action( 'woocommerce_order_status_refunded',    array( $this, 'on_order_refunded' ), 20 );
+        }
     }
 
     /* ═══════════════════════════════════════════════

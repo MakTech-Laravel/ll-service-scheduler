@@ -13,7 +13,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'LL_SCHED_VER',  '2.0.1' );
+define( 'LL_SCHED_VER',  '2.0.2' );
 define( 'LL_SCHED_DIR',  plugin_dir_path( __FILE__ ) );
 define( 'LL_SCHED_URL',  plugin_dir_url( __FILE__ ) );
 define( 'LL_SCHED_FILE', __FILE__ );
@@ -21,11 +21,11 @@ define( 'LL_SCHED_FILE', __FILE__ );
 /* ─────────────────────────────────────────────
    Load all includes after plugins are ready
 ───────────────────────────────────────────── */
-add_action( 'plugins_loaded', 'll_sched_boot', 5 );
+add_action( 'plugins_loaded', 'll_sched_boot', 20 );
+add_action( 'init', 'll_sched_repair_orphan_bookings', 20 );
 
 function ll_sched_boot() {
     ll_sched_migrate_options(); // one-time migration v1 → v2
-    ll_sched_repair_orphan_bookings();
 
     require_once LL_SCHED_DIR . 'includes/class-menu.php';
     require_once LL_SCHED_DIR . 'includes/class-settings.php';
@@ -203,12 +203,21 @@ function ll_sched_find_booking_for_order_item( $item ) {
  * One-time repair: link existing bookings to WooCommerce orders and sync status.
  */
 function ll_sched_repair_orphan_bookings() {
-    if ( get_option( 'll_sched_repaired_booking_links' ) === LL_SCHED_VER || ! class_exists( 'WooCommerce' ) ) {
+    if ( get_option( 'll_sched_repaired_booking_links' ) === LL_SCHED_VER ) {
+        return;
+    }
+
+    if ( ! function_exists( 'wc_get_orders' ) ) {
         return;
     }
 
     global $wpdb;
-    $table   = $wpdb->prefix . 'll_sched_bookings';
+    $table  = $wpdb->prefix . 'll_sched_bookings';
+    $exists = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) );
+    if ( $exists !== $table ) {
+        return;
+    }
+
     $orphans = $wpdb->get_results( "SELECT * FROM `{$table}` WHERE order_id = 0 OR order_id IS NULL" ); // phpcs:ignore
 
     if ( empty( $orphans ) ) {
@@ -223,9 +232,22 @@ function ll_sched_repair_orphan_bookings() {
         'status'  => array( 'processing', 'completed', 'on-hold', 'pending' ),
     ) );
 
+    if ( empty( $orders ) || ! is_iterable( $orders ) ) {
+        update_option( 'll_sched_repaired_booking_links', LL_SCHED_VER );
+        return;
+    }
+
     foreach ( $orphans as $booking ) {
         foreach ( $orders as $order ) {
+            if ( ! is_object( $order ) || ! method_exists( $order, 'get_items' ) ) {
+                continue;
+            }
+
             foreach ( $order->get_items() as $item ) {
+                if ( ! is_object( $item ) || ! method_exists( $item, 'get_meta' ) ) {
+                    continue;
+                }
+
                 $item_date    = $item->get_meta( 'll_date' );
                 $item_service = $item->get_meta( 'll_service_ids' );
 
@@ -244,7 +266,7 @@ function ll_sched_repair_orphan_bookings() {
 
                 $order_id = $order->get_id();
                 $status   = 'pending';
-                if ( $order->has_status( array( 'processing', 'completed' ) ) ) {
+                if ( $order->has_status( 'processing' ) || $order->has_status( 'completed' ) ) {
                     $status = 'paid';
                 } elseif ( $order->has_status( 'cancelled' ) ) {
                     $status = 'cancelled';

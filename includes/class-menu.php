@@ -82,8 +82,11 @@ class LL_Sched_Menu {
        Enqueue admin assets (only on our plugin pages)
     ───────────────────────────────────────────── */
     public function admin_body_class( $classes ) {
-        $screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
-        if ( $screen && strpos( $screen->id, 'll-scheduler' ) !== false ) {
+        if ( ! function_exists( 'get_current_screen' ) ) {
+            return $classes;
+        }
+        $screen = get_current_screen();
+        if ( $screen && ! empty( $screen->id ) && strpos( $screen->id, 'll-scheduler' ) !== false ) {
             $classes .= ' ll-sched-admin-page';
         }
         return $classes;
