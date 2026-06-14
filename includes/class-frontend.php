@@ -8,16 +8,55 @@ class LL_Sched_Frontend {
         add_action( 'wp_enqueue_scripts', array( $this, 'enqueue' ) );
 
         // WooCommerce hooks
-        add_action( 'woocommerce_before_calculate_totals',      array( $this, 'price_override' ), 20 );
-        add_filter( 'woocommerce_get_item_data',                array( $this, 'cart_item_display' ), 10, 2 );
-        add_filter( 'woocommerce_cart_item_name',               array( $this, 'cart_item_name' ), 10, 3 );
+        add_action( 'woocommerce_before_calculate_totals',         array( $this, 'price_override' ), 20 );
+        add_filter( 'woocommerce_get_cart_item_from_session',    array( $this, 'restore_cart_item_session' ), 10, 3 );
+        add_filter( 'woocommerce_get_item_data',                 array( $this, 'cart_item_display' ), 10, 2 );
+        add_filter( 'woocommerce_cart_item_name',                array( $this, 'cart_item_name' ), 10, 3 );
         add_action( 'woocommerce_checkout_create_order_line_item', array( $this, 'save_order_meta' ), 10, 4 );
         add_action( 'woocommerce_checkout_order_processed',        array( $this, 'save_order_booking_link' ), 10, 1 );
+        add_filter( 'woocommerce_order_item_display_meta_key',   array( $this, 'order_item_meta_label' ), 10, 3 );
+        add_filter( 'woocommerce_hidden_order_itemmeta',         array( $this, 'hide_internal_order_meta' ) );
+        add_action( 'woocommerce_before_checkout_form',            array( $this, 'render_checkout_booking_summary' ), 5 );
+    }
+
+    /**
+     * Custom booking keys stored on cart line items.
+     */
+    private function booking_cart_keys() {
+        return array(
+            'll_price', 'll_service_ids', 'll_services', 'll_date', 'll_time', 'll_start', 'll_end',
+            'll_property_size', 'll_city', 'll_address', 'll_notes', 'll_booking_id', 'll_jet_apt_id',
+        );
+    }
+
+    /**
+     * Restore booking data when the cart is loaded from session (required for checkout display).
+     */
+    public function restore_cart_item_session( $cart_item, $values, $key ) {
+        foreach ( $this->booking_cart_keys() as $booking_key ) {
+            if ( isset( $values[ $booking_key ] ) ) {
+                $cart_item[ $booking_key ] = $values[ $booking_key ];
+            }
+        }
+        return $cart_item;
     }
 
     public function enqueue() {
         global $post;
-        if ( ! $post || ! has_shortcode( $post->post_content, 'll_schedule_service' ) ) return;
+        $on_scheduler = $post && has_shortcode( $post->post_content, 'll_schedule_service' );
+        $on_checkout  = function_exists( 'is_checkout' ) && ( is_checkout() || is_cart() );
+
+        if ( ! $on_scheduler && ! $on_checkout ) {
+            return;
+        }
+
+        if ( $on_checkout ) {
+            wp_enqueue_style( 'll-sched-checkout', LL_SCHED_URL . 'assets/css/scheduler.css', array(), LL_SCHED_VER );
+        }
+
+        if ( ! $on_scheduler ) {
+            return;
+        }
 
         wp_enqueue_style(  'll-sched', LL_SCHED_URL . 'assets/css/scheduler.css', array(), LL_SCHED_VER );
         wp_enqueue_script( 'll-sched', LL_SCHED_URL . 'assets/js/scheduler.js',   array(), LL_SCHED_VER, true );
@@ -114,6 +153,86 @@ class LL_Sched_Frontend {
             return esc_html( $cart_item['ll_services'] );
         }
         return $name;
+    }
+
+    /**
+     * Human-readable booking details for cart and checkout line items.
+     */
+    private function format_booking_details_html( $cart_item ) {
+        $lines = array();
+
+        $map = array(
+            'll_property_size' => __( 'Property Size', 'll-service-scheduler' ),
+            'll_city'          => __( 'City', 'll-service-scheduler' ),
+            'll_address'       => __( 'Address', 'll-service-scheduler' ),
+            'll_date'          => __( 'Booking Date', 'll-service-scheduler' ),
+            'll_time'          => __( 'Time Slot', 'll-service-scheduler' ),
+        );
+
+        foreach ( $map as $key => $label ) {
+            if ( ! empty( $cart_item[ $key ] ) ) {
+                $lines[] = '<strong>' . esc_html( $label ) . ':</strong> ' . esc_html( $cart_item[ $key ] );
+            }
+        }
+
+        if ( empty( $lines ) ) {
+            return '';
+        }
+
+        return '<div class="ll-checkout-booking-meta">' . implode( '<br>', $lines ) . '</div>';
+    }
+
+    /**
+     * Booking summary box above the checkout form (classic checkout).
+     */
+    public function render_checkout_booking_summary() {
+        if ( ! function_exists( 'WC' ) || ! WC()->cart ) {
+            return;
+        }
+
+        foreach ( WC()->cart->get_cart() as $cart_item ) {
+            if ( empty( $cart_item['ll_services'] ) ) {
+                continue;
+            }
+
+            echo '<div class="ll-checkout-booking-summary woocommerce-info">';
+            echo '<p><strong>' . esc_html__( 'Booking Details', 'll-service-scheduler' ) . '</strong></p>';
+            echo '<p>' . esc_html( $cart_item['ll_services'] ) . '</p>';
+            echo $this->format_booking_details_html( $cart_item ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+            echo '</div>';
+            break;
+        }
+    }
+
+    /**
+     * Friendly labels for booking meta on order confirmation and emails.
+     */
+    public function order_item_meta_label( $display_key, $meta, $item ) {
+        $map = array(
+            'll_property_size' => __( 'Property Size', 'll-service-scheduler' ),
+            'll_city'          => __( 'City', 'll-service-scheduler' ),
+            'll_address'       => __( 'Address', 'll-service-scheduler' ),
+            'll_date'          => __( 'Booking Date', 'll-service-scheduler' ),
+            'll_time'          => __( 'Time Slot', 'll-service-scheduler' ),
+            'll_services'      => __( 'Services', 'll-service-scheduler' ),
+            'll_notes'         => __( 'Notes', 'll-service-scheduler' ),
+        );
+
+        return $map[ $meta->key ] ?? $display_key;
+    }
+
+    /**
+     * Hide internal booking keys from customer-facing order views.
+     */
+    public function hide_internal_order_meta( $hidden ) {
+        return array_merge( (array) $hidden, array(
+            'll_service_ids',
+            'll_start',
+            'll_end',
+            'll_price',
+            'll_booking_id',
+            'll_jet_apt_id',
+        ) );
     }
 
     public function save_order_meta( $item, $cart_key, $cart_item, $order ) {

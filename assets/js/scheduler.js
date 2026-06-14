@@ -191,7 +191,7 @@
         if (city && cities.length && !listContainsValue(cities, city)) {
             return false;
         }
-        if (address && addresses.length && !listMatchesPartial(addresses, address)) {
+        if (address && addresses.length && !listContainsValue(addresses, address)) {
             return false;
         }
         return true;
@@ -241,11 +241,9 @@
             propSizeEl.addEventListener('change', applyServiceFilters);
         }
         if (cityEl) {
-            cityEl.addEventListener('input', applyServiceFilters);
             cityEl.addEventListener('change', applyServiceFilters);
         }
         if (addressEl) {
-            addressEl.addEventListener('input', applyServiceFilters);
             addressEl.addEventListener('change', applyServiceFilters);
         }
     }

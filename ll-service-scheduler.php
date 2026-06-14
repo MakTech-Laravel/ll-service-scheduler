@@ -402,8 +402,18 @@ function ll_sched_service_matches_filters( $post_id, $property_size, $city, $add
         }
     }
 
-    if ( ! empty( $addresses ) && $address !== '' && ! ll_sched_list_matches_filter( $address, $addresses ) ) {
-        return false;
+    if ( ! empty( $addresses ) && $address !== '' ) {
+        $address_lower = strtolower( trim( $address ) );
+        $match         = false;
+        foreach ( $addresses as $a ) {
+            if ( strtolower( trim( $a ) ) === $address_lower ) {
+                $match = true;
+                break;
+            }
+        }
+        if ( ! $match ) {
+            return false;
+        }
     }
 
     return true;

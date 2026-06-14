@@ -34,34 +34,22 @@ defined( 'ABSPATH' ) || exit;
 
         <div class="ll-field">
             <label for="llCity">Select City</label>
-            <input type="text"
-                   id="llCity"
-                   placeholder="City / Town"
-                   list="llCityList"
-                   autocomplete="address-level2">
-            <?php if ( ! empty( $cities ) ) : ?>
-            <datalist id="llCityList">
+            <select id="llCity">
+                <option value="">&#8212; Select &#8212;</option>
                 <?php foreach ( $cities as $c ) : ?>
-                <option value="<?php echo esc_attr( $c ); ?>">
+                <option value="<?php echo esc_attr( $c ); ?>"><?php echo esc_html( $c ); ?></option>
                 <?php endforeach; ?>
-            </datalist>
-            <?php endif; ?>
+            </select>
         </div>
 
         <div class="ll-field">
             <label for="llAddress">Service Area / Address</label>
-            <input type="text"
-                   id="llAddress"
-                   placeholder="Area or address"
-                   list="llAddressList"
-                   autocomplete="street-address">
-            <?php if ( ! empty( $addresses ) ) : ?>
-            <datalist id="llAddressList">
+            <select id="llAddress">
+                <option value="">&#8212; Select &#8212;</option>
                 <?php foreach ( $addresses as $a ) : ?>
-                <option value="<?php echo esc_attr( $a ); ?>">
+                <option value="<?php echo esc_attr( $a ); ?>"><?php echo esc_html( $a ); ?></option>
                 <?php endforeach; ?>
-            </datalist>
-            <?php endif; ?>
+            </select>
         </div>
 
     </div><!-- .ll-filters -->

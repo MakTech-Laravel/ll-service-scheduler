@@ -59,16 +59,36 @@ class LL_Sched_Service_Meta {
     public function render_availability_meta_box( $post ) {
         wp_nonce_field( 'll_sched_service_meta', 'll_svc_nonce' );
 
+        $allowed_sizes     = (array) get_post_meta( $post->ID, '_ll_svc_property_sizes', true );
         $allowed_cities    = (array) get_post_meta( $post->ID, '_ll_svc_cities', true );
         $allowed_addresses = (array) get_post_meta( $post->ID, '_ll_svc_addresses', true );
+        $global_sizes      = (array) get_option( 'll_sched_property_sizes', array() );
         $global_cities     = (array) get_option( 'll_sched_cities', array() );
         $global_addresses  = (array) get_option( 'll_sched_addresses', array() );
         ?>
         <div class="ll-svc-meta-wrap">
             <p class="description" style="margin-top:0;">
-                Restrict which cities and service areas can book this service on the front-end form.
+                Restrict which property sizes, cities, and service areas can book this service on the front-end form.
                 Leave all empty to allow <strong>all</strong> options.
             </p>
+
+            <div class="ll-svc-section">
+                <h4>Property Size (Sq. Ft)</h4>
+                <?php
+                $selected_size = ! empty( $allowed_sizes ) ? (string) $allowed_sizes[0] : '';
+                if ( empty( $global_sizes ) ) :
+                ?>
+                <p class="description">No property sizes configured. Add them under <a href="<?php echo esc_url( admin_url( 'admin.php?page=ll-scheduler-settings&tab=general' ) ); ?>">Settings → General</a>.</p>
+                <?php else : ?>
+                <select name="_ll_svc_property_size" id="llSvcPropertySize" class="regular-text">
+                    <option value=""><?php esc_html_e( '— All sizes —', 'll-service-scheduler' ); ?></option>
+                    <?php foreach ( $global_sizes as $size ) : ?>
+                    <option value="<?php echo esc_attr( $size ); ?>" <?php selected( $selected_size, $size ); ?>><?php echo esc_html( $size ); ?></option>
+                    <?php endforeach; ?>
+                </select>
+                <p class="description">Leave as &ldquo;All sizes&rdquo; to allow any property size on the booking form.</p>
+                <?php endif; ?>
+            </div>
 
             <div class="ll-svc-section">
                 <h4>Allowed Cities</h4>
@@ -259,8 +279,11 @@ class LL_Sched_Service_Meta {
         }
 
         // Filter availability
+        $raw_size  = sanitize_text_field( $_POST['_ll_svc_property_size'] ?? '' );
+        $sizes     = $raw_size !== '' ? array( $raw_size ) : array();
         $cities    = array_values( array_filter( array_map( 'sanitize_text_field', (array) ( $_POST['_ll_svc_cities'] ?? array() ) ) ) );
         $addresses = array_values( array_unique( array_filter( array_map( 'sanitize_text_field', (array) ( $_POST['_ll_svc_addresses'] ?? array() ) ) ) ) );
+        update_post_meta( $post_id, '_ll_svc_property_sizes', $sizes );
         update_post_meta( $post_id, '_ll_svc_cities', $cities );
         update_post_meta( $post_id, '_ll_svc_addresses', $addresses );
 

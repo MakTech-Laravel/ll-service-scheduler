@@ -564,3 +564,21 @@
         transform: translateY(0);
     }
 }
+
+/* ─────────────────────────────────────────
+   CART / CHECKOUT BOOKING META
+───────────────────────────────────────── */
+.ll-checkout-booking-meta {
+    margin-top: 8px;
+    font-size: 0.88rem;
+    line-height: 1.5;
+    color: #555;
+}
+
+.ll-checkout-booking-summary {
+    margin-bottom: 24px;
+}
+
+.ll-checkout-booking-summary p {
+    margin: 0 0 8px;
+}
