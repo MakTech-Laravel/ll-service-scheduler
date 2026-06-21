@@ -60,6 +60,7 @@ class LL_Sched_Service_Meta {
         wp_nonce_field( 'll_sched_service_meta', 'll_svc_nonce' );
 
         $allowed_sizes     = (array) get_post_meta( $post->ID, '_ll_svc_property_sizes', true );
+        $size_prices       = (array) get_post_meta( $post->ID, '_ll_svc_size_prices', true );
         $allowed_cities    = (array) get_post_meta( $post->ID, '_ll_svc_cities', true );
         $allowed_addresses = (array) get_post_meta( $post->ID, '_ll_svc_addresses', true );
         $global_sizes      = (array) get_option( 'll_sched_property_sizes', array() );
@@ -73,20 +74,67 @@ class LL_Sched_Service_Meta {
             </p>
 
             <div class="ll-svc-section">
-                <h4>Property Size (Sq. Ft)</h4>
-                <?php
-                $selected_size = ! empty( $allowed_sizes ) ? (string) $allowed_sizes[0] : '';
-                if ( empty( $global_sizes ) ) :
-                ?>
+                <h4>Allowed Property Sizes (Sq. Ft)</h4>
+                <?php if ( empty( $global_sizes ) ) : ?>
                 <p class="description">No property sizes configured. Add them under <a href="<?php echo esc_url( admin_url( 'admin.php?page=ll-scheduler-settings&tab=general' ) ); ?>">Settings → General</a>.</p>
                 <?php else : ?>
-                <select name="_ll_svc_property_size" id="llSvcPropertySize" class="regular-text">
-                    <option value=""><?php esc_html_e( '— All sizes —', 'll-service-scheduler' ); ?></option>
+                <div class="ll-day-checkboxes">
                     <?php foreach ( $global_sizes as $size ) : ?>
-                    <option value="<?php echo esc_attr( $size ); ?>" <?php selected( $selected_size, $size ); ?>><?php echo esc_html( $size ); ?></option>
+                    <label class="ll-day-label <?php echo in_array( $size, $allowed_sizes, true ) ? 'll-day-open' : ''; ?>">
+                        <input type="checkbox"
+                               name="_ll_svc_property_sizes[]"
+                               value="<?php echo esc_attr( $size ); ?>"
+                               <?php checked( in_array( $size, $allowed_sizes, true ) ); ?>>
+                        <?php echo esc_html( $size ); ?>
+                    </label>
                     <?php endforeach; ?>
-                </select>
-                <p class="description">Leave as &ldquo;All sizes&rdquo; to allow any property size on the booking form.</p>
+                </div>
+                <p class="description">Leave all unchecked to allow <strong>any</strong> property size on the booking form.</p>
+                <?php endif; ?>
+            </div>
+
+            <div class="ll-svc-section">
+                <h4>Pricing by Property Size</h4>
+                <p class="description">
+                    Optional. If you enter prices here, the front-end will use the selected Property Size to calculate the service price.
+                    Leave a size price blank to fall back to this service&rsquo;s base price (the existing <code>price</code> field).
+                </p>
+                <?php if ( empty( $global_sizes ) ) : ?>
+                    <p class="description">No property sizes configured. Add them under <a href="<?php echo esc_url( admin_url( 'admin.php?page=ll-scheduler-settings&tab=general' ) ); ?>">Settings → General</a>.</p>
+                <?php else : ?>
+                    <table class="widefat striped" style="max-width:520px;">
+                        <thead>
+                            <tr>
+                                <th style="width:65%;">Property Size</th>
+                                <th style="width:35%;">Price</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ( array_values( $global_sizes ) as $i => $size ) :
+                                $val = '';
+                                if ( is_array( $size_prices ) && array_key_exists( $size, $size_prices ) ) {
+                                    $val = $size_prices[ $size ];
+                                }
+                            ?>
+                                <tr>
+                                    <td>
+                                        <?php echo esc_html( $size ); ?>
+                                        <input type="hidden" name="_ll_svc_size_prices[<?php echo (int) $i; ?>][size]" value="<?php echo esc_attr( $size ); ?>">
+                                    </td>
+                                    <td>
+                                        <input
+                                            type="number"
+                                            step="0.01"
+                                            min="0"
+                                            class="small-text"
+                                            name="_ll_svc_size_prices[<?php echo (int) $i; ?>][price]"
+                                            value="<?php echo esc_attr( $val ); ?>"
+                                            placeholder="e.g. 99">
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
                 <?php endif; ?>
             </div>
 
@@ -279,13 +327,29 @@ class LL_Sched_Service_Meta {
         }
 
         // Filter availability
-        $raw_size  = sanitize_text_field( $_POST['_ll_svc_property_size'] ?? '' );
-        $sizes     = $raw_size !== '' ? array( $raw_size ) : array();
+        $sizes     = array_values( array_filter( array_map( 'sanitize_text_field', (array) ( $_POST['_ll_svc_property_sizes'] ?? array() ) ) ) );
         $cities    = array_values( array_filter( array_map( 'sanitize_text_field', (array) ( $_POST['_ll_svc_cities'] ?? array() ) ) ) );
         $addresses = array_values( array_unique( array_filter( array_map( 'sanitize_text_field', (array) ( $_POST['_ll_svc_addresses'] ?? array() ) ) ) ) );
         update_post_meta( $post_id, '_ll_svc_property_sizes', $sizes );
         update_post_meta( $post_id, '_ll_svc_cities', $cities );
         update_post_meta( $post_id, '_ll_svc_addresses', $addresses );
+
+        // Size-based pricing (optional)
+        $raw_size_prices = (array) ( $_POST['_ll_svc_size_prices'] ?? array() );
+        $clean_map       = array();
+        foreach ( $raw_size_prices as $row ) {
+            $size  = sanitize_text_field( $row['size'] ?? '' );
+            $price = sanitize_text_field( $row['price'] ?? '' );
+            if ( $size === '' || $price === '' ) {
+                continue;
+            }
+            $num = (float) $price;
+            if ( $num <= 0 ) {
+                continue;
+            }
+            $clean_map[ $size ] = $num;
+        }
+        update_post_meta( $post_id, '_ll_svc_size_prices', $clean_map );
 
         // Custom schedule toggle
         update_post_meta( $post_id, '_ll_svc_use_custom', isset( $_POST['_ll_svc_use_custom'] ) ? '1' : '0' );

@@ -44,12 +44,18 @@ defined( 'ABSPATH' ) || exit;
 
         <div class="ll-field">
             <label for="llAddress">Service Area / Address</label>
-            <select id="llAddress">
-                <option value="">&#8212; Select &#8212;</option>
+            <input type="text"
+                   id="llAddress"
+                   placeholder="Area or address"
+                   list="llAddressList"
+                   autocomplete="street-address">
+            <?php if ( ! empty( $addresses ) ) : ?>
+            <datalist id="llAddressList">
                 <?php foreach ( $addresses as $a ) : ?>
-                <option value="<?php echo esc_attr( $a ); ?>"><?php echo esc_html( $a ); ?></option>
+                <option value="<?php echo esc_attr( $a ); ?>">
                 <?php endforeach; ?>
-            </select>
+            </datalist>
+            <?php endif; ?>
         </div>
 
     </div><!-- .ll-filters -->
@@ -84,19 +90,29 @@ defined( 'ABSPATH' ) || exit;
 
                 <?php foreach ( $services as $svc ) :
                     $price          = get_post_meta( $svc->ID, 'price', true );
+                    $size_prices    = (array) get_post_meta( $svc->ID, '_ll_svc_size_prices', true );
                     $img            = get_the_post_thumbnail_url( $svc->ID, 'medium' );
                     $svc_sizes      = array_values( (array) get_post_meta( $svc->ID, '_ll_svc_property_sizes', true ) );
                     $svc_cities     = array_values( (array) get_post_meta( $svc->ID, '_ll_svc_cities', true ) );
                     $svc_addresses  = array_values( array_filter( (array) get_post_meta( $svc->ID, '_ll_svc_addresses', true ) ) );
+                    $display_price  = floatval( $price );
+                    if ( ! empty( $size_prices ) && is_array( $size_prices ) ) {
+                        $vals = array_filter( array_map( 'floatval', array_values( $size_prices ) ), function( $v ) { return $v > 0; } );
+                        if ( ! empty( $vals ) ) {
+                            $display_price = min( $vals );
+                        }
+                    }
                 ?>
 
                 <label class="ll-svc-item"
                        data-id="<?php echo $svc->ID; ?>"
-                       data-price="<?php echo esc_attr( floatval( $price ) ); ?>"
+                       data-price="<?php echo esc_attr( $display_price ); ?>"
+                       data-base-price="<?php echo esc_attr( floatval( $price ) ); ?>"
                        data-title="<?php echo esc_attr( $svc->post_title ); ?>"
                        data-sizes="<?php echo esc_attr( wp_json_encode( $svc_sizes ) ); ?>"
                        data-cities="<?php echo esc_attr( wp_json_encode( $svc_cities ) ); ?>"
-                       data-addresses="<?php echo esc_attr( wp_json_encode( $svc_addresses ) ); ?>">
+                       data-addresses="<?php echo esc_attr( wp_json_encode( $svc_addresses ) ); ?>"
+                       data-size-prices="<?php echo esc_attr( wp_json_encode( $size_prices ) ); ?>">
 
                     <div class="ll-svc-left">
                         <input type="checkbox"
@@ -104,8 +120,8 @@ defined( 'ABSPATH' ) || exit;
                                value="<?php echo $svc->ID; ?>">
                         <span class="ll-svc-info">
                             <span class="ll-svc-name"><?php echo esc_html( $svc->post_title ); ?></span>
-                            <?php if ( $price ) : ?>
-                            <span class="ll-svc-price">From: $<?php echo number_format( floatval( $price ) ); ?></span>
+                            <?php if ( $display_price ) : ?>
+                            <span class="ll-svc-price">From: $<?php echo number_format( floatval( $display_price ) ); ?></span>
                             <?php endif; ?>
                         </span>
                     </div>

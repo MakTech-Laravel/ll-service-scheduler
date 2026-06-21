@@ -143,12 +143,29 @@
         }
     }
 
+    function parseJsonObjectAttr(str) {
+        if (!str) return {};
+        try {
+            var parsed = JSON.parse(str);
+            if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+                return parsed;
+            }
+            return {};
+        } catch (e) {
+            return {};
+        }
+    }
+
     function normalizeFilterText(value) {
         return (value || '').trim().toLowerCase();
     }
 
     function parseDataList(item, attr) {
         return parseJsonAttr(item.getAttribute('data-' + attr) || '');
+    }
+
+    function parseSizePrices(item) {
+        return parseJsonObjectAttr(item.getAttribute('data-size-prices') || '');
     }
 
     /** Partial match: user text is contained in service address, or the reverse. */
@@ -191,7 +208,7 @@
         if (city && cities.length && !listContainsValue(cities, city)) {
             return false;
         }
-        if (address && addresses.length && !listContainsValue(addresses, address)) {
+        if (address && addresses.length && !listMatchesPartial(addresses, address)) {
             return false;
         }
         return true;
@@ -230,6 +247,37 @@
         });
 
         if (changed && elCalGrid) renderCalendar();
+
+        updateServiceCardPrices(propSize);
+    }
+
+    function formatPriceDisplay(amount) {
+        var n = parseFloat(amount) || 0;
+        if (n <= 0) return '';
+        return n % 1 === 0 ? n.toLocaleString() : n.toFixed(2);
+    }
+
+    /**
+     * Update "From: $X" on each service card when property size filter changes.
+     */
+    function updateServiceCardPrices(propSize) {
+        document.querySelectorAll('.ll-svc-item').forEach(function (item) {
+            var priceEl = item.querySelector('.ll-svc-price');
+            if (!priceEl) return;
+
+            var price = getServicePriceForSize(item, propSize);
+            if (price <= 0) {
+                priceEl.textContent = '';
+                return;
+            }
+
+            var formatted = formatPriceDisplay(price);
+            if (propSize) {
+                priceEl.textContent = '$' + formatted;
+            } else {
+                priceEl.textContent = 'From: $' + formatted;
+            }
+        });
     }
 
     function initFilters() {
@@ -238,12 +286,16 @@
         var addressEl  = document.getElementById('llAddress');
 
         if (propSizeEl) {
-            propSizeEl.addEventListener('change', applyServiceFilters);
+            propSizeEl.addEventListener('change', function () {
+                applyServiceFilters();
+                updateSummary();
+            });
         }
         if (cityEl) {
             cityEl.addEventListener('change', applyServiceFilters);
         }
         if (addressEl) {
+            addressEl.addEventListener('input', applyServiceFilters);
             addressEl.addEventListener('change', applyServiceFilters);
         }
     }
@@ -272,7 +324,7 @@
     function onServiceChange(item, cb) {
         var id    = parseInt(item.dataset.id, 10);
         var title = item.dataset.title || '';
-        var price = parseFloat(item.dataset.price) || 0;
+        var price = 0;
 
         if (cb.checked) {
             if (MODE === 'single') {
@@ -289,7 +341,7 @@
 
             // Add to selection if not already in
             if (!selectedServices.find(function (s) { return s.id === id; })) {
-                selectedServices.push({ id: id, title: title, price: price });
+                selectedServices.push({ id: id, title: title, el: item, price: price });
             }
             item.classList.add('ll-checked');
 
@@ -302,6 +354,66 @@
         toggleBookingSection();
         // Re-render calendar so per-service blocked days apply immediately
         if (elCalGrid) renderCalendar();
+    }
+
+    function currentPropertySize() {
+        var propSizeEl = document.getElementById('llPropSize');
+        return propSizeEl ? propSizeEl.value : '';
+    }
+
+    function filtersAreComplete() {
+        var propSizeEl = document.getElementById('llPropSize');
+        var cityEl     = document.getElementById('llCity');
+        var addressEl  = document.getElementById('llAddress');
+
+        if (!propSizeEl || !propSizeEl.value.trim()) return false;
+        if (!cityEl || !cityEl.value.trim()) return false;
+        if (!addressEl || !addressEl.value.trim()) return false;
+        return true;
+    }
+
+    function getFiltersErrorMessage() {
+        var propSizeEl = document.getElementById('llPropSize');
+        var cityEl     = document.getElementById('llCity');
+        var addressEl  = document.getElementById('llAddress');
+
+        if (!propSizeEl || !propSizeEl.value.trim()) {
+            return 'Please select a Property Size before continuing.';
+        }
+        if (!cityEl || !cityEl.value.trim()) {
+            return 'Please select a City before continuing.';
+        }
+        if (!addressEl || !addressEl.value.trim()) {
+            return 'Please enter a Service Area / Address before continuing.';
+        }
+        return '';
+    }
+
+    function scrollToFilters() {
+        var filters = document.querySelector('.ll-filters');
+        if (filters) {
+            filters.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    }
+
+    function getServicePriceForSize(item, propSize) {
+        var sizePrices = parseSizePrices(item);
+
+        if (propSize && sizePrices && Object.prototype.hasOwnProperty.call(sizePrices, propSize)) {
+            var p = parseFloat(sizePrices[propSize]);
+            if (!isNaN(p) && p > 0) return p;
+        }
+
+        if (!propSize && sizePrices && typeof sizePrices === 'object') {
+            var mins = [];
+            Object.keys(sizePrices).forEach(function (key) {
+                var val = parseFloat(sizePrices[key]);
+                if (!isNaN(val) && val > 0) mins.push(val);
+            });
+            if (mins.length) return Math.min.apply(null, mins);
+        }
+
+        return parseFloat(item.dataset.basePrice) || parseFloat(item.dataset.price) || 0;
     }
 
     function toggleBookingSection() {
@@ -325,11 +437,15 @@
     function updateSummary() {
         var total = 0;
         var html  = '';
+        var propSize = currentPropertySize();
         selectedServices.forEach(function (s) {
-            total += s.price;
+            var itemEl = s.el || document.querySelector('.ll-svc-item[data-id="' + s.id + '"]');
+            var price = itemEl ? getServicePriceForSize(itemEl, propSize) : (s.price || 0);
+            s.price = price;
+            total += price;
             html += '<div class="ll-summary-item">' +
                         '<span>' + escHtml(s.title) + '</span>' +
-                        '<span>$' + s.price.toFixed(2) + '</span>' +
+                        '<span>$' + price.toFixed(2) + '</span>' +
                     '</div>';
         });
         if (elSummaryItems) elSummaryItems.innerHTML = html;
@@ -512,6 +628,11 @@
     }
 
     function validate() {
+        if (!filtersAreComplete()) {
+            showMsg(getFiltersErrorMessage(), 'error');
+            scrollToFilters();
+            return false;
+        }
         if (!selectedServices.length) {
             showMsg('Please select at least one service.', 'error');
             return false;

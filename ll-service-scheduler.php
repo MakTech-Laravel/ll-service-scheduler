@@ -13,7 +13,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'LL_SCHED_VER',  '2.0.3' );
+define( 'LL_SCHED_VER',  '2.1.2' );
 define( 'LL_SCHED_DIR',  plugin_dir_path( __FILE__ ) );
 define( 'LL_SCHED_URL',  plugin_dir_url( __FILE__ ) );
 define( 'LL_SCHED_FILE', __FILE__ );
@@ -402,18 +402,8 @@ function ll_sched_service_matches_filters( $post_id, $property_size, $city, $add
         }
     }
 
-    if ( ! empty( $addresses ) && $address !== '' ) {
-        $address_lower = strtolower( trim( $address ) );
-        $match         = false;
-        foreach ( $addresses as $a ) {
-            if ( strtolower( trim( $a ) ) === $address_lower ) {
-                $match = true;
-                break;
-            }
-        }
-        if ( ! $match ) {
-            return false;
-        }
+    if ( ! empty( $addresses ) && $address !== '' && ! ll_sched_list_matches_filter( $address, $addresses ) ) {
+        return false;
     }
 
     return true;

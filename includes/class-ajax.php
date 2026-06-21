@@ -51,6 +51,9 @@ class LL_Sched_Ajax {
 
         /* ── 2. Validate required ── */
         if ( empty( $raw_services ) ) wp_send_json_error( 'Please select at least one service.' );
+        if ( $property_size === '' )  wp_send_json_error( 'Please select a Property Size.' );
+        if ( $city === '' )          wp_send_json_error( 'Please select a City.' );
+        if ( $address === '' )       wp_send_json_error( 'Please enter a Service Area / Address.' );
         if ( empty( $date ) )         wp_send_json_error( 'Please select a booking date.' );
         if ( empty( $time_raw ) )     wp_send_json_error( 'Please select a time slot.' );
 
@@ -85,7 +88,16 @@ class LL_Sched_Ajax {
                 wp_send_json_error( '"' . $post->post_title . '" is not available on the selected date.' );
             }
 
-            $price        = floatval( get_post_meta( $sid, 'price', true ) );
+            $base_price  = floatval( get_post_meta( $sid, 'price', true ) );
+            $price       = $base_price;
+            // If size-based pricing is set for the chosen property size, use it.
+            $size_prices = (array) get_post_meta( $sid, '_ll_svc_size_prices', true );
+            if ( $property_size !== '' && ! empty( $size_prices ) && array_key_exists( $property_size, $size_prices ) ) {
+                $size_price = floatval( $size_prices[ $property_size ] );
+                if ( $size_price > 0 ) {
+                    $price = $size_price;
+                }
+            }
             $valid_ids[]  = $sid;
             $titles[]     = $post->post_title;
             $total_price += $price;

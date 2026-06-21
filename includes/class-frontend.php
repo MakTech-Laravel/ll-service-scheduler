@@ -6,6 +6,7 @@ class LL_Sched_Frontend {
     public function __construct() {
         add_shortcode( 'll_schedule_service', array( $this, 'shortcode' ) );
         add_action( 'wp_enqueue_scripts', array( $this, 'enqueue' ) );
+        add_action( 'wp_head', array( $this, 'print_outfit_preconnect' ), 1 );
 
         // WooCommerce hooks
         add_action( 'woocommerce_before_calculate_totals',         array( $this, 'price_override' ), 20 );
@@ -43,7 +44,7 @@ class LL_Sched_Frontend {
 
     public function enqueue() {
         global $post;
-        $on_scheduler = $post && has_shortcode( $post->post_content, 'll_schedule_service' );
+        $on_scheduler = $this->is_scheduler_page( $post );
         $on_checkout  = function_exists( 'is_checkout' ) && ( is_checkout() || is_cart() );
 
         if ( ! $on_scheduler && ! $on_checkout ) {
@@ -51,25 +52,85 @@ class LL_Sched_Frontend {
         }
 
         if ( $on_checkout ) {
-            wp_enqueue_style( 'll-sched-checkout', LL_SCHED_URL . 'assets/css/scheduler.css', array(), LL_SCHED_VER );
+            $this->enqueue_outfit_font();
+            wp_enqueue_style( 'll-sched-checkout', LL_SCHED_URL . 'assets/css/scheduler.css', array( 'll-sched-outfit-font' ), LL_SCHED_VER );
         }
 
-        if ( ! $on_scheduler ) {
+        if ( $on_scheduler ) {
+            $this->enqueue_scheduler_assets();
+        }
+    }
+
+    /**
+     * Detect scheduler page (supports Elementor — shortcode may not be in post_content).
+     */
+    private function is_scheduler_page( $post ) {
+        if ( ! $post ) {
+            return false;
+        }
+        if ( has_shortcode( $post->post_content, 'll_schedule_service' ) ) {
+            return true;
+        }
+        if ( ! empty( $post->ID ) && get_post_meta( $post->ID, '_elementor_data', true ) ) {
+            $elementor_data = get_post_meta( $post->ID, '_elementor_data', true );
+            if ( is_string( $elementor_data ) && strpos( $elementor_data, 'll_schedule_service' ) !== false ) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Styles + scripts for the booking form (also called from shortcode as a fallback).
+     */
+    private function enqueue_scheduler_assets() {
+        static $done = false;
+        if ( $done ) {
             return;
         }
+        $done = true;
 
-        wp_enqueue_style(  'll-sched', LL_SCHED_URL . 'assets/css/scheduler.css', array(), LL_SCHED_VER );
-        wp_enqueue_script( 'll-sched', LL_SCHED_URL . 'assets/js/scheduler.js',   array(), LL_SCHED_VER, true );
+        $this->enqueue_outfit_font();
+        wp_enqueue_style( 'll-sched', LL_SCHED_URL . 'assets/css/scheduler.css', array( 'll-sched-outfit-font' ), LL_SCHED_VER );
+        wp_enqueue_script( 'll-sched', LL_SCHED_URL . 'assets/js/scheduler.js', array(), LL_SCHED_VER, true );
 
         wp_localize_script( 'll-sched', 'llSched', array(
-            'ajaxUrl'     => admin_url( 'admin-ajax.php' ),
-            'nonce'       => wp_create_nonce( 'll_sched_booking' ),
-            'blockedDays' => array_map( 'intval', (array) get_option( 'll_sched_blocked_days', array() ) ),
-            'timeSlots'   => (array) get_option( 'll_sched_time_slots', array() ),
+            'ajaxUrl'       => admin_url( 'admin-ajax.php' ),
+            'nonce'         => wp_create_nonce( 'll_sched_booking' ),
+            'blockedDays'   => array_map( 'intval', (array) get_option( 'll_sched_blocked_days', array() ) ),
+            'timeSlots'     => (array) get_option( 'll_sched_time_slots', array() ),
             'selectionMode' => get_option( 'll_sched_selection_mode', 'multiple' ),
-            // Per-service data (blocked days, time slots, days off) as JSON keyed by post ID
-            'serviceData' => $this->build_service_data(),
+            'serviceData'   => $this->build_service_data(),
         ) );
+    }
+
+    /**
+     * Load Outfit — do not rely on theme/Elementor (their text vars often resolve to Roboto).
+     */
+    private function enqueue_outfit_font() {
+        if ( wp_style_is( 'll-sched-outfit-font', 'enqueued' ) ) {
+            return;
+        }
+        wp_enqueue_style(
+            'll-sched-outfit-font',
+            'https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap',
+            array(),
+            LL_SCHED_VER
+        );
+    }
+
+    /**
+     * Faster Google Font load.
+     */
+    public function print_outfit_preconnect() {
+        global $post;
+        $on_scheduler = $this->is_scheduler_page( $post );
+        $on_checkout  = function_exists( 'is_checkout' ) && ( is_checkout() || is_cart() );
+        if ( ! $on_scheduler && ! $on_checkout ) {
+            return;
+        }
+        echo '<link rel="preconnect" href="https://fonts.googleapis.com">' . "\n";
+        echo '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>' . "\n";
     }
 
     /**
@@ -90,6 +151,7 @@ class LL_Sched_Frontend {
                 'propertySizes'  => array_values( (array) get_post_meta( $id, '_ll_svc_property_sizes', true ) ),
                 'cities'         => array_values( (array) get_post_meta( $id, '_ll_svc_cities', true ) ),
                 'addresses'      => array_values( (array) get_post_meta( $id, '_ll_svc_addresses', true ) ),
+                'sizePrices'     => (object) ( get_post_meta( $id, '_ll_svc_size_prices', true ) ?: new stdClass() ),
             );
 
             if ( $use_custom ) {
@@ -108,6 +170,8 @@ class LL_Sched_Frontend {
        Shortcode renderer
     ───────────────────────────────────────────── */
     public function shortcode( $atts ) {
+        $this->enqueue_scheduler_assets();
+
         $sizes     = (array) get_option( 'll_sched_property_sizes', array() );
         $cities    = (array) get_option( 'll_sched_cities', array() );
         $addresses = (array) get_option( 'll_sched_addresses', array() );
