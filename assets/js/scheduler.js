@@ -352,6 +352,10 @@
 
         updateSummary();
         toggleBookingSection();
+
+        if (cb.checked) {
+            scrollToNextServiceCategory(item);
+        }
         // Re-render calendar so per-service blocked days apply immediately
         if (elCalGrid) renderCalendar();
     }
@@ -418,13 +422,7 @@
 
     function toggleBookingSection() {
         if (selectedServices.length > 0) {
-            if (elBooking.hidden) {
-                elBooking.hidden = false;
-                // Scroll into view on first reveal (smooth)
-                setTimeout(function () {
-                    elBooking.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                }, 80);
-            }
+            elBooking.hidden = false;
         } else {
             elBooking.hidden = true;
             // Reset date/time selections when no services chosen
@@ -432,6 +430,38 @@
             selectedTime = null;
             elTimes.hidden = true;
         }
+    }
+
+    /**
+     * Scroll to the next visible service category after checking a service.
+     */
+    function scrollToNextServiceCategory(item) {
+        var currentGroup = item.closest('.ll-cat-group');
+        if (!currentGroup) return;
+
+        var groups = document.querySelectorAll('.ll-cat-group');
+        var passedCurrent = false;
+        var target = null;
+
+        for (var i = 0; i < groups.length; i++) {
+            if (groups[i] === currentGroup) {
+                passedCurrent = true;
+                continue;
+            }
+            if (passedCurrent && groups[i].offsetParent !== null) {
+                target = groups[i];
+                break;
+            }
+        }
+
+        if (!target) return;
+
+        var scrollTarget = target.querySelector('.ll-cat-title') || target;
+        setTimeout(function () {
+            var offset = 20;
+            var top = scrollTarget.getBoundingClientRect().top + window.pageYOffset - offset;
+            window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+        }, 80);
     }
 
     function updateSummary() {

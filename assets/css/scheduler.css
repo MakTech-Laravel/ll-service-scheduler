@@ -129,6 +129,7 @@
     padding-bottom: 12px;
     border-bottom: 2px solid #f2f2f2;
     text-align: center;
+    scroll-margin-top: 20px;
 }
 
 /* ─────────────────────────────────────────
@@ -301,6 +302,10 @@
     margin: 0 0 20px;
     padding-bottom: 12px;
     border-bottom: 2px solid #f0f0f0;
+}
+
+.ll-booking .ll-section-title {
+    scroll-margin-top: 24px;
 }
 
 .ll-section-subtitle {
