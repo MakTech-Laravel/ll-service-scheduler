@@ -171,6 +171,16 @@
     user-select: none;
     background: #fff;
     height: 112px;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.ll-svc-item .ll-svc-right,
+.ll-svc-item .ll-svc-left,
+.ll-svc-item .ll-svc-info,
+.ll-svc-item .ll-svc-name,
+.ll-svc-item .ll-svc-price,
+.ll-svc-item img {
+    pointer-events: none;
 }
 
 .ll-svc-item:hover {
@@ -204,6 +214,7 @@
     cursor: pointer;
     margin: 0;
     flex-shrink: 0;
+    pointer-events: auto;
 }
 
 .ll-svc-info {

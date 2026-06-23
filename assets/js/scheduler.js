@@ -304,17 +304,12 @@
        SERVICE SELECTION
     ══════════════════════════════════════════ */
     function initServiceCheckboxes() {
-        var items = document.querySelectorAll('.ll-svc-item');
-        items.forEach(function (item) {
+        document.querySelectorAll('.ll-svc-item').forEach(function (item) {
             var cb = item.querySelector('.ll-svc-cb');
+            if (!cb) return;
 
-            // Clicking anywhere on the card toggles the checkbox
-            item.addEventListener('click', function (e) {
-                if (e.target === cb) return; // let default checkbox behaviour run
-                cb.checked = !cb.checked;
-                onServiceChange(item, cb);
-            });
-
+            // Card is a <label> — clicking anywhere toggles the checkbox natively.
+            // Listen only to change to avoid double-toggle when clicking the card.
             cb.addEventListener('change', function () {
                 onServiceChange(item, cb);
             });
