@@ -152,6 +152,7 @@ class LL_Sched_Frontend {
                 'cities'         => array_values( (array) get_post_meta( $id, '_ll_svc_cities', true ) ),
                 'addresses'      => array_values( (array) get_post_meta( $id, '_ll_svc_addresses', true ) ),
                 'sizePrices'     => (object) ( get_post_meta( $id, '_ll_svc_size_prices', true ) ?: new stdClass() ),
+                'citySizePrices' => (object) ( get_post_meta( $id, '_ll_svc_city_size_prices', true ) ?: new stdClass() ),
             );
 
             if ( $use_custom ) {

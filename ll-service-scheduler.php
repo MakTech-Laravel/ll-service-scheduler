@@ -13,7 +13,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'LL_SCHED_VER',  '2.1.5' );
+define( 'LL_SCHED_VER',  '2.2.1' );
 define( 'LL_SCHED_DIR',  plugin_dir_path( __FILE__ ) );
 define( 'LL_SCHED_URL',  plugin_dir_url( __FILE__ ) );
 define( 'LL_SCHED_FILE', __FILE__ );
@@ -374,6 +374,203 @@ function ll_sched_list_matches_filter( $user_value, $allowed_list ) {
         }
     }
     return false;
+}
+
+/**
+ * Find a city key in a city→prices map (case-insensitive exact match).
+ *
+ * @param string              $city User-selected city.
+ * @param array<string,mixed> $map  Keys are city names.
+ * @return string|null Matched key or null.
+ */
+function ll_sched_find_city_price_key( $city, $map ) {
+    $city = trim( (string) $city );
+    if ( $city === '' || empty( $map ) || ! is_array( $map ) ) {
+        return null;
+    }
+
+    if ( array_key_exists( $city, $map ) ) {
+        return $city;
+    }
+
+    $city_lower = strtolower( $city );
+    foreach ( $map as $key => $value ) {
+        if ( strtolower( trim( (string) $key ) ) === $city_lower ) {
+            return (string) $key;
+        }
+    }
+
+    return null;
+}
+
+/**
+ * Resolve the booking price for one service.
+ *
+ * Priority: city+size override → size override → base price.
+ *
+ * @param int    $post_id       Service post ID.
+ * @param string $property_size Selected property size label.
+ * @param string $city          Selected city.
+ * @return float
+ */
+function ll_sched_get_service_price( $post_id, $property_size = '', $city = '' ) {
+    $base_price = floatval( get_post_meta( $post_id, 'price', true ) );
+    $price      = $base_price;
+
+    $size_prices      = (array) get_post_meta( $post_id, '_ll_svc_size_prices', true );
+    $city_size_prices = (array) get_post_meta( $post_id, '_ll_svc_city_size_prices', true );
+
+    if ( $city !== '' && $property_size !== '' && ! empty( $city_size_prices ) ) {
+        $city_key = ll_sched_find_city_price_key( $city, $city_size_prices );
+        if ( null !== $city_key ) {
+            $city_sizes = (array) ( $city_size_prices[ $city_key ] ?? array() );
+            if ( array_key_exists( $property_size, $city_sizes ) ) {
+                $city_size_price = floatval( $city_sizes[ $property_size ] );
+                if ( $city_size_price > 0 ) {
+                    return $city_size_price;
+                }
+            }
+        }
+    }
+
+    if ( $property_size !== '' && ! empty( $size_prices ) && array_key_exists( $property_size, $size_prices ) ) {
+        $size_price = floatval( $size_prices[ $property_size ] );
+        if ( $size_price > 0 ) {
+            $price = $size_price;
+        }
+    }
+
+    return $price;
+}
+
+/**
+ * Lowest display price for service cards ("From: $X").
+ *
+ * @param int    $post_id       Service post ID.
+ * @param string $property_size Optional selected size.
+ * @param string $city          Optional selected city.
+ * @return float
+ */
+function ll_sched_get_service_display_price( $post_id, $property_size = '', $city = '' ) {
+    if ( $property_size !== '' && $city !== '' ) {
+        return ll_sched_get_service_price( $post_id, $property_size, $city );
+    }
+
+    if ( $property_size !== '' ) {
+        return ll_sched_get_service_price( $post_id, $property_size, '' );
+    }
+
+    $base_price       = floatval( get_post_meta( $post_id, 'price', true ) );
+    $size_prices      = (array) get_post_meta( $post_id, '_ll_svc_size_prices', true );
+    $city_size_prices = (array) get_post_meta( $post_id, '_ll_svc_city_size_prices', true );
+    $candidates       = array();
+
+    if ( $city !== '' && ! empty( $city_size_prices ) ) {
+        $city_key = ll_sched_find_city_price_key( $city, $city_size_prices );
+        if ( null !== $city_key ) {
+            foreach ( (array) ( $city_size_prices[ $city_key ] ?? array() ) as $amount ) {
+                $num = floatval( $amount );
+                if ( $num > 0 ) {
+                    $candidates[] = $num;
+                }
+            }
+        }
+    }
+
+    if ( empty( $candidates ) ) {
+        foreach ( $city_size_prices as $city_sizes ) {
+            foreach ( (array) $city_sizes as $amount ) {
+                $num = floatval( $amount );
+                if ( $num > 0 ) {
+                    $candidates[] = $num;
+                }
+            }
+        }
+    }
+
+    foreach ( $size_prices as $amount ) {
+        $num = floatval( $amount );
+        if ( $num > 0 ) {
+            $candidates[] = $num;
+        }
+    }
+
+    if ( ! empty( $candidates ) ) {
+        return min( $candidates );
+    }
+
+    return $base_price;
+}
+
+/**
+ * Service card media (image, GIF, or short video).
+ *
+ * Uses custom media ID when set; otherwise falls back to the Featured Image.
+ *
+ * @param int $post_id Service post ID.
+ * @return array{id:int,url:string,mime:string,type:string}|null
+ */
+function ll_sched_get_service_card_media( $post_id ) {
+    $media_id = (int) get_post_meta( $post_id, '_ll_svc_card_media_id', true );
+    if ( ! $media_id ) {
+        $media_id = (int) get_post_thumbnail_id( $post_id );
+    }
+    if ( ! $media_id ) {
+        return null;
+    }
+
+    $mime = (string) get_post_mime_type( $media_id );
+    $url  = wp_get_attachment_url( $media_id );
+    if ( ! $url ) {
+        return null;
+    }
+
+    $type = 'image';
+    if ( $mime !== '' && strpos( $mime, 'video/' ) === 0 ) {
+        $type = 'video';
+    } elseif ( $mime === 'image/gif' ) {
+        $type = 'gif';
+    }
+
+    return array(
+        'id'   => $media_id,
+        'url'  => $url,
+        'mime' => $mime,
+        'type' => $type,
+    );
+}
+
+/**
+ * Output service card media markup (static image, GIF, or looping video).
+ *
+ * @param int    $post_id Service post ID.
+ * @param string $title   Accessible label / alt text.
+ */
+function ll_sched_render_service_card_media( $post_id, $title = '' ) {
+    $media = ll_sched_get_service_card_media( $post_id );
+    $title = $title !== '' ? $title : get_the_title( $post_id );
+
+    if ( ! $media ) {
+        echo '<div class="ll-no-img"></div>';
+        return;
+    }
+
+    if ( $media['type'] === 'video' ) {
+        printf(
+            '<span class="ll-svc-media-frame"><video class="ll-svc-media" autoplay muted loop playsinline webkit-playsinline preload="auto" disablepictureinpicture aria-label="%1$s"><source src="%2$s" type="%3$s"></video></span>',
+            esc_attr( $title ),
+            esc_url( $media['url'] ),
+            esc_attr( $media['mime'] )
+        );
+        return;
+    }
+
+    printf(
+        '<img class="ll-svc-media" src="%1$s" alt="%2$s" loading="lazy" decoding="async"%3$s>',
+        esc_url( $media['url'] ),
+        esc_attr( $title ),
+        $media['type'] === 'gif' ? ' data-ll-media="gif"' : ''
+    );
 }
 
 /**

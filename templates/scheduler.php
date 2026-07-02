@@ -89,19 +89,13 @@ defined( 'ABSPATH' ) || exit;
             <div class="ll-services-grid">
 
                 <?php foreach ( $services as $svc ) :
-                    $price          = get_post_meta( $svc->ID, 'price', true );
-                    $size_prices    = (array) get_post_meta( $svc->ID, '_ll_svc_size_prices', true );
-                    $img            = get_the_post_thumbnail_url( $svc->ID, 'medium' );
-                    $svc_sizes      = array_values( (array) get_post_meta( $svc->ID, '_ll_svc_property_sizes', true ) );
-                    $svc_cities     = array_values( (array) get_post_meta( $svc->ID, '_ll_svc_cities', true ) );
-                    $svc_addresses  = array_values( array_filter( (array) get_post_meta( $svc->ID, '_ll_svc_addresses', true ) ) );
-                    $display_price  = floatval( $price );
-                    if ( ! empty( $size_prices ) && is_array( $size_prices ) ) {
-                        $vals = array_filter( array_map( 'floatval', array_values( $size_prices ) ), function( $v ) { return $v > 0; } );
-                        if ( ! empty( $vals ) ) {
-                            $display_price = min( $vals );
-                        }
-                    }
+                    $price              = get_post_meta( $svc->ID, 'price', true );
+                    $size_prices        = (array) get_post_meta( $svc->ID, '_ll_svc_size_prices', true );
+                    $city_size_prices   = (array) get_post_meta( $svc->ID, '_ll_svc_city_size_prices', true );
+                    $svc_sizes          = array_values( (array) get_post_meta( $svc->ID, '_ll_svc_property_sizes', true ) );
+                    $svc_cities         = array_values( (array) get_post_meta( $svc->ID, '_ll_svc_cities', true ) );
+                    $svc_addresses      = array_values( array_filter( (array) get_post_meta( $svc->ID, '_ll_svc_addresses', true ) ) );
+                    $display_price      = ll_sched_get_service_display_price( $svc->ID );
                 ?>
 
                 <label class="ll-svc-item"
@@ -112,7 +106,8 @@ defined( 'ABSPATH' ) || exit;
                        data-sizes="<?php echo esc_attr( wp_json_encode( $svc_sizes ) ); ?>"
                        data-cities="<?php echo esc_attr( wp_json_encode( $svc_cities ) ); ?>"
                        data-addresses="<?php echo esc_attr( wp_json_encode( $svc_addresses ) ); ?>"
-                       data-size-prices="<?php echo esc_attr( wp_json_encode( $size_prices ) ); ?>">
+                       data-size-prices="<?php echo esc_attr( wp_json_encode( $size_prices ) ); ?>"
+                       data-city-size-prices="<?php echo esc_attr( wp_json_encode( $city_size_prices ) ); ?>">
 
                     <div class="ll-svc-left">
                         <input type="checkbox"
@@ -127,12 +122,7 @@ defined( 'ABSPATH' ) || exit;
                     </div>
 
                     <div class="ll-svc-right">
-                        <?php if ( $img ) : ?>
-                        <img src="<?php echo esc_url( $img ); ?>"
-                             alt="<?php echo esc_attr( $svc->post_title ); ?>">
-                        <?php else : ?>
-                        <div class="ll-no-img"></div>
-                        <?php endif; ?>
+                        <?php ll_sched_render_service_card_media( $svc->ID, $svc->post_title ); ?>
                     </div>
 
                 </label>

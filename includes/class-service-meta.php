@@ -28,6 +28,7 @@ class LL_Sched_Service_Meta {
             LL_SCHED_VER,
             true
         );
+        wp_enqueue_media();
         wp_enqueue_style(
             'll-sched-service-meta',
             LL_SCHED_URL . 'assets/css/admin.css',
@@ -59,10 +60,14 @@ class LL_Sched_Service_Meta {
     public function render_availability_meta_box( $post ) {
         wp_nonce_field( 'll_sched_service_meta', 'll_svc_nonce' );
 
-        $allowed_sizes     = (array) get_post_meta( $post->ID, '_ll_svc_property_sizes', true );
-        $size_prices       = (array) get_post_meta( $post->ID, '_ll_svc_size_prices', true );
-        $allowed_cities    = (array) get_post_meta( $post->ID, '_ll_svc_cities', true );
+        $allowed_sizes       = (array) get_post_meta( $post->ID, '_ll_svc_property_sizes', true );
+        $size_prices         = (array) get_post_meta( $post->ID, '_ll_svc_size_prices', true );
+        $city_size_prices    = (array) get_post_meta( $post->ID, '_ll_svc_city_size_prices', true );
+        $allowed_cities      = (array) get_post_meta( $post->ID, '_ll_svc_cities', true );
         $allowed_addresses = (array) get_post_meta( $post->ID, '_ll_svc_addresses', true );
+        $card_media_id     = (int) get_post_meta( $post->ID, '_ll_svc_card_media_id', true );
+        $card_media        = $card_media_id ? ll_sched_get_service_card_media( $post->ID ) : null;
+        $featured_media    = ! $card_media_id ? ll_sched_get_service_card_media( $post->ID ) : null;
         $global_sizes      = (array) get_option( 'll_sched_property_sizes', array() );
         $global_cities     = (array) get_option( 'll_sched_cities', array() );
         $global_addresses  = (array) get_option( 'll_sched_addresses', array() );
@@ -74,7 +79,36 @@ class LL_Sched_Service_Meta {
             </p>
 
             <div class="ll-svc-section">
+                <h4>Service Card Image / GIF / Video</h4>
+                <p class="description">
+                    Optional override for the booking form card. Leave empty to use this service&rsquo;s <strong>Featured Image</strong>.
+                    Upload a still image, animated GIF, or short MP4/WebM clip (keep files small for fast loading).
+                    GIFs and videos autoplay and loop on the service card.
+                </p>
+                <input type="hidden" name="_ll_svc_card_media_id" id="llSvcCardMediaId" value="<?php echo esc_attr( $card_media_id ); ?>">
+                <div class="ll-svc-card-media-preview" id="llSvcCardMediaPreview">
+                    <?php
+                    $preview = $card_media ?: $featured_media;
+                    if ( $preview && $preview['type'] === 'video' ) :
+                    ?>
+                        <video src="<?php echo esc_url( $preview['url'] ); ?>" muted loop playsinline></video>
+                    <?php elseif ( $preview ) : ?>
+                        <img src="<?php echo esc_url( $preview['url'] ); ?>" alt="">
+                    <?php else : ?>
+                        <span class="ll-svc-card-media-placeholder">No media selected — Featured Image will be used if set.</span>
+                    <?php endif; ?>
+                </div>
+                <p class="ll-svc-card-media-actions">
+                    <button type="button" class="button" id="llSvcCardMediaPick">Select Media</button>
+                    <button type="button" class="button button-link-delete" id="llSvcCardMediaRemove" <?php echo $card_media_id ? '' : 'style="display:none;"'; ?>>Remove Override</button>
+                </p>
+            </div>
+
+            <div class="ll-svc-section">
                 <h4>Allowed Property Sizes (Sq. Ft)</h4>
+                <p class="description">
+                    Choose which property sizes can book this service. Leave all unchecked to allow <strong>any</strong> size.
+                </p>
                 <?php if ( empty( $global_sizes ) ) : ?>
                 <p class="description">No property sizes configured. Add them under <a href="<?php echo esc_url( admin_url( 'admin.php?page=ll-scheduler-settings&tab=general' ) ); ?>">Settings → General</a>.</p>
                 <?php else : ?>
@@ -139,7 +173,79 @@ class LL_Sched_Service_Meta {
             </div>
 
             <div class="ll-svc-section">
+                <h4>Pricing by City</h4>
+                <p class="description">
+                    Optional. Set different prices per city for each property size.
+                    When a customer selects a city and size on the booking form, the matching city price is used.
+                    Leave a field blank to fall back to the <strong>Pricing by Property Size</strong> value above, then the service base price.
+                </p>
+                <?php if ( empty( $global_cities ) ) : ?>
+                    <p class="description">No cities configured. Add them under <a href="<?php echo esc_url( admin_url( 'admin.php?page=ll-scheduler-settings&tab=general' ) ); ?>">Settings → General</a>.</p>
+                <?php elseif ( empty( $global_sizes ) ) : ?>
+                    <p class="description">Add property sizes under <a href="<?php echo esc_url( admin_url( 'admin.php?page=ll-scheduler-settings&tab=general' ) ); ?>">Settings → General</a> before setting city prices.</p>
+                <?php else : ?>
+                    <div class="ll-city-price-groups">
+                        <?php foreach ( $global_cities as $city_index => $city ) :
+                            $city_prices = (array) ( $city_size_prices[ $city ] ?? array() );
+                            $has_prices  = false;
+                            foreach ( $city_prices as $amount ) {
+                                if ( floatval( $amount ) > 0 ) {
+                                    $has_prices = true;
+                                    break;
+                                }
+                            }
+                        ?>
+                        <details class="ll-city-price-group" <?php echo $has_prices ? 'open' : ''; ?>>
+                            <summary class="ll-city-price-summary"><?php echo esc_html( $city ); ?></summary>
+                            <table class="widefat striped ll-city-price-table">
+                                <thead>
+                                    <tr>
+                                        <th style="width:65%;">Property Size</th>
+                                        <th style="width:35%;">Price</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php foreach ( array_values( $global_sizes ) as $size_index => $size ) :
+                                        $val = '';
+                                        if ( is_array( $city_prices ) && array_key_exists( $size, $city_prices ) ) {
+                                            $val = $city_prices[ $size ];
+                                        }
+                                    ?>
+                                    <tr>
+                                        <td>
+                                            <?php echo esc_html( $size ); ?>
+                                            <input type="hidden"
+                                                   name="_ll_svc_city_size_prices[<?php echo (int) $city_index; ?>][city]"
+                                                   value="<?php echo esc_attr( $city ); ?>">
+                                            <input type="hidden"
+                                                   name="_ll_svc_city_size_prices[<?php echo (int) $city_index; ?>][sizes][<?php echo (int) $size_index; ?>][size]"
+                                                   value="<?php echo esc_attr( $size ); ?>">
+                                        </td>
+                                        <td>
+                                            <input
+                                                type="number"
+                                                step="0.01"
+                                                min="0"
+                                                class="small-text"
+                                                name="_ll_svc_city_size_prices[<?php echo (int) $city_index; ?>][sizes][<?php echo (int) $size_index; ?>][price]"
+                                                value="<?php echo esc_attr( $val ); ?>"
+                                                placeholder="e.g. 199">
+                                        </td>
+                                    </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </details>
+                        <?php endforeach; ?>
+                    </div>
+                <?php endif; ?>
+            </div>
+
+            <div class="ll-svc-section">
                 <h4>Allowed Cities</h4>
+                <p class="description">
+                    Choose which cities can book this service. Leave all unchecked to allow <strong>any</strong> city.
+                </p>
                 <?php if ( empty( $global_cities ) ) : ?>
                 <p class="description">No cities configured. Add them under <a href="<?php echo esc_url( admin_url( 'admin.php?page=ll-scheduler-settings&tab=general' ) ); ?>">Settings → General</a>.</p>
                 <?php else : ?>
@@ -154,6 +260,7 @@ class LL_Sched_Service_Meta {
                     </label>
                     <?php endforeach; ?>
                 </div>
+                <p class="description">Leave all unchecked to allow <strong>any</strong> city on the booking form.</p>
                 <?php endif; ?>
             </div>
 
@@ -334,6 +441,18 @@ class LL_Sched_Service_Meta {
         update_post_meta( $post_id, '_ll_svc_cities', $cities );
         update_post_meta( $post_id, '_ll_svc_addresses', $addresses );
 
+        $card_media_id = absint( $_POST['_ll_svc_card_media_id'] ?? 0 );
+        if ( $card_media_id ) {
+            $mime = (string) get_post_mime_type( $card_media_id );
+            if ( $mime && ( strpos( $mime, 'image/' ) === 0 || strpos( $mime, 'video/' ) === 0 ) ) {
+                update_post_meta( $post_id, '_ll_svc_card_media_id', $card_media_id );
+            } else {
+                delete_post_meta( $post_id, '_ll_svc_card_media_id' );
+            }
+        } else {
+            delete_post_meta( $post_id, '_ll_svc_card_media_id' );
+        }
+
         // Size-based pricing (optional)
         $raw_size_prices = (array) ( $_POST['_ll_svc_size_prices'] ?? array() );
         $clean_map       = array();
@@ -350,6 +469,33 @@ class LL_Sched_Service_Meta {
             $clean_map[ $size ] = $num;
         }
         update_post_meta( $post_id, '_ll_svc_size_prices', $clean_map );
+
+        // City × size pricing (optional)
+        $raw_city_prices = (array) ( $_POST['_ll_svc_city_size_prices'] ?? array() );
+        $clean_city_map  = array();
+        foreach ( $raw_city_prices as $row ) {
+            $city = sanitize_text_field( $row['city'] ?? '' );
+            if ( $city === '' ) {
+                continue;
+            }
+            $size_map = array();
+            foreach ( (array) ( $row['sizes'] ?? array() ) as $size_row ) {
+                $size  = sanitize_text_field( $size_row['size'] ?? '' );
+                $price = sanitize_text_field( $size_row['price'] ?? '' );
+                if ( $size === '' || $price === '' ) {
+                    continue;
+                }
+                $num = (float) $price;
+                if ( $num <= 0 ) {
+                    continue;
+                }
+                $size_map[ $size ] = $num;
+            }
+            if ( ! empty( $size_map ) ) {
+                $clean_city_map[ $city ] = $size_map;
+            }
+        }
+        update_post_meta( $post_id, '_ll_svc_city_size_prices', $clean_city_map );
 
         // Custom schedule toggle
         update_post_meta( $post_id, '_ll_svc_use_custom', isset( $_POST['_ll_svc_use_custom'] ) ? '1' : '0' );

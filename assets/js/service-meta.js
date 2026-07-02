@@ -115,4 +115,57 @@ jQuery(function ($) {
         }
         $lbl.toggleClass('ll-day-open', $(this).is(':checked'));
     });
+
+    /* ── Service card media (image / GIF / video) ── */
+    var cardMediaFrame;
+
+    function renderCardMediaPreview(attachment) {
+        var $preview = $('#llSvcCardMediaPreview');
+        $preview.empty();
+
+        if (!attachment) {
+            $preview.html('<span class="ll-svc-card-media-placeholder">No media selected — Featured Image will be used if set.</span>');
+            $('#llSvcCardMediaRemove').hide();
+            return;
+        }
+
+        var mime = attachment.mime || attachment.type || '';
+        if (mime.indexOf('video/') === 0) {
+            $preview.html('<video src="' + attachment.url + '" muted loop playsinline></video>');
+        } else {
+            var thumb = attachment.sizes && attachment.sizes.medium ? attachment.sizes.medium.url : attachment.url;
+            $preview.html('<img src="' + thumb + '" alt="">');
+        }
+        $('#llSvcCardMediaRemove').show();
+    }
+
+    $('#llSvcCardMediaPick').on('click', function (e) {
+        e.preventDefault();
+
+        if (cardMediaFrame) {
+            cardMediaFrame.open();
+            return;
+        }
+
+        cardMediaFrame = wp.media({
+            title: 'Select Service Card Media',
+            button: { text: 'Use this media' },
+            library: { type: ['image', 'video'] },
+            multiple: false
+        });
+
+        cardMediaFrame.on('select', function () {
+            var attachment = cardMediaFrame.state().get('selection').first().toJSON();
+            $('#llSvcCardMediaId').val(attachment.id);
+            renderCardMediaPreview(attachment);
+        });
+
+        cardMediaFrame.open();
+    });
+
+    $('#llSvcCardMediaRemove').on('click', function (e) {
+        e.preventDefault();
+        $('#llSvcCardMediaId').val('');
+        renderCardMediaPreview(null);
+    });
 });

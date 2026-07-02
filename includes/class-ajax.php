@@ -88,16 +88,7 @@ class LL_Sched_Ajax {
                 wp_send_json_error( '"' . $post->post_title . '" is not available on the selected date.' );
             }
 
-            $base_price  = floatval( get_post_meta( $sid, 'price', true ) );
-            $price       = $base_price;
-            // If size-based pricing is set for the chosen property size, use it.
-            $size_prices = (array) get_post_meta( $sid, '_ll_svc_size_prices', true );
-            if ( $property_size !== '' && ! empty( $size_prices ) && array_key_exists( $property_size, $size_prices ) ) {
-                $size_price = floatval( $size_prices[ $property_size ] );
-                if ( $size_price > 0 ) {
-                    $price = $size_price;
-                }
-            }
+            $price       = ll_sched_get_service_price( $sid, $property_size, $city );
             $valid_ids[]  = $sid;
             $titles[]     = $post->post_title;
             $total_price += $price;

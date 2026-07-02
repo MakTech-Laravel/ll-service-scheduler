@@ -125,9 +125,49 @@
 
         initServiceCheckboxes();
         initFilters();
+        initServiceCardVideos();
         initCalendar();
         initSubmit();
         applyServiceFilters();
+    }
+
+    /**
+     * Ensure service card videos autoplay after load (browser policy-safe).
+     */
+    function initServiceCardVideos() {
+        function playVideo(video) {
+            if (!video || video.tagName !== 'VIDEO') {
+                return;
+            }
+            video.muted = true;
+            video.defaultMuted = true;
+            video.playsInline = true;
+            video.setAttribute('muted', '');
+            video.setAttribute('playsinline', '');
+            video.setAttribute('webkit-playsinline', '');
+            var promise = video.play();
+            if (promise && typeof promise.catch === 'function') {
+                promise.catch(function () {});
+            }
+        }
+
+        function playAllVideos() {
+            document.querySelectorAll('.ll-svc-right video.ll-svc-media').forEach(playVideo);
+        }
+
+        document.querySelectorAll('.ll-svc-right video.ll-svc-media').forEach(function (video) {
+            if (video.readyState >= 2) {
+                playVideo(video);
+            }
+            video.addEventListener('loadeddata', function () { playVideo(video); }, { once: true });
+            video.addEventListener('canplay', function () { playVideo(video); }, { once: true });
+        });
+
+        if (document.readyState === 'complete') {
+            playAllVideos();
+        } else {
+            window.addEventListener('load', playAllVideos);
+        }
     }
 
     /* ══════════════════════════════════════════
@@ -166,6 +206,23 @@
 
     function parseSizePrices(item) {
         return parseJsonObjectAttr(item.getAttribute('data-size-prices') || '');
+    }
+
+    function parseCitySizePrices(item) {
+        return parseJsonObjectAttr(item.getAttribute('data-city-size-prices') || '');
+    }
+
+    function findCityPriceKey(city, map) {
+        if (!city || !map || typeof map !== 'object') return null;
+        if (Object.prototype.hasOwnProperty.call(map, city)) return city;
+        var cityLower = normalizeFilterText(city);
+        var keys = Object.keys(map);
+        for (var i = 0; i < keys.length; i++) {
+            if (normalizeFilterText(keys[i]) === cityLower) {
+                return keys[i];
+            }
+        }
+        return null;
     }
 
     /** Partial match: user text is contained in service address, or the reverse. */
@@ -248,7 +305,7 @@
 
         if (changed && elCalGrid) renderCalendar();
 
-        updateServiceCardPrices(propSize);
+        updateServiceCardPrices(propSize, city);
     }
 
     function formatPriceDisplay(amount) {
@@ -258,14 +315,19 @@
     }
 
     /**
-     * Update "From: $X" on each service card when property size filter changes.
+     * Update service card prices when property size or city changes.
      */
-    function updateServiceCardPrices(propSize) {
+    function updateServiceCardPrices(propSize, city) {
+        if (typeof city === 'undefined') {
+            var cityEl = document.getElementById('llCity');
+            city = cityEl ? cityEl.value : '';
+        }
+
         document.querySelectorAll('.ll-svc-item').forEach(function (item) {
             var priceEl = item.querySelector('.ll-svc-price');
             if (!priceEl) return;
 
-            var price = getServicePriceForSize(item, propSize);
+            var price = getServicePrice(item, propSize, city);
             if (price <= 0) {
                 priceEl.textContent = '';
                 return;
@@ -292,7 +354,10 @@
             });
         }
         if (cityEl) {
-            cityEl.addEventListener('change', applyServiceFilters);
+            cityEl.addEventListener('change', function () {
+                applyServiceFilters();
+                updateSummary();
+            });
         }
         if (addressEl) {
             addressEl.addEventListener('input', applyServiceFilters);
@@ -395,12 +460,63 @@
         }
     }
 
-    function getServicePriceForSize(item, propSize) {
+    function currentCity() {
+        var cityEl = document.getElementById('llCity');
+        return cityEl ? cityEl.value : '';
+    }
+
+    function getServicePrice(item, propSize, city) {
+        if (typeof city === 'undefined') {
+            city = currentCity();
+        }
+
         var sizePrices = parseSizePrices(item);
+        var citySizePrices = parseCitySizePrices(item);
+
+        if (propSize && city) {
+            var cityKey = findCityPriceKey(city, citySizePrices);
+            if (cityKey && citySizePrices[cityKey] && Object.prototype.hasOwnProperty.call(citySizePrices[cityKey], propSize)) {
+                var citySizePrice = parseFloat(citySizePrices[cityKey][propSize]);
+                if (!isNaN(citySizePrice) && citySizePrice > 0) {
+                    return citySizePrice;
+                }
+            }
+        }
 
         if (propSize && sizePrices && Object.prototype.hasOwnProperty.call(sizePrices, propSize)) {
-            var p = parseFloat(sizePrices[propSize]);
-            if (!isNaN(p) && p > 0) return p;
+            var sizePrice = parseFloat(sizePrices[propSize]);
+            if (!isNaN(sizePrice) && sizePrice > 0) {
+                return sizePrice;
+            }
+        }
+
+        if (!propSize && city) {
+            var cityOnlyKey = findCityPriceKey(city, citySizePrices);
+            if (cityOnlyKey && citySizePrices[cityOnlyKey]) {
+                var cityMins = [];
+                Object.keys(citySizePrices[cityOnlyKey]).forEach(function (key) {
+                    var val = parseFloat(citySizePrices[cityOnlyKey][key]);
+                    if (!isNaN(val) && val > 0) cityMins.push(val);
+                });
+                if (cityMins.length) return Math.min.apply(null, cityMins);
+            }
+        }
+
+        if (!propSize && !city) {
+            var allMins = [];
+            Object.keys(citySizePrices).forEach(function (cityName) {
+                Object.keys(citySizePrices[cityName]).forEach(function (sizeKey) {
+                    var amount = parseFloat(citySizePrices[cityName][sizeKey]);
+                    if (!isNaN(amount) && amount > 0) allMins.push(amount);
+                });
+            });
+            if (sizePrices && typeof sizePrices === 'object') {
+                Object.keys(sizePrices).forEach(function (key) {
+                    var val = parseFloat(sizePrices[key]);
+                    if (!isNaN(val) && val > 0) allMins.push(val);
+                });
+            }
+            if (allMins.length) return Math.min.apply(null, allMins);
         }
 
         if (!propSize && sizePrices && typeof sizePrices === 'object') {
@@ -463,9 +579,10 @@
         var total = 0;
         var html  = '';
         var propSize = currentPropertySize();
+        var city     = currentCity();
         selectedServices.forEach(function (s) {
             var itemEl = s.el || document.querySelector('.ll-svc-item[data-id="' + s.id + '"]');
-            var price = itemEl ? getServicePriceForSize(itemEl, propSize) : (s.price || 0);
+            var price = itemEl ? getServicePrice(itemEl, propSize, city) : (s.price || 0);
             s.price = price;
             total += price;
             html += '<div class="ll-summary-item">' +
