@@ -168,8 +168,8 @@
 
 /* ─────────────────────────────────────────
    SERVICE ITEM
-   Left: checkbox top, title + price bottom (40%)
-   Right: large image (60%)
+   Left: checkbox top, title + price bottom (35%)
+   Right: large image (65%)
 ───────────────────────────────────────── */
 #llScheduler label.ll-svc-item {
     display: flex !important;
@@ -211,9 +211,9 @@
 
 /* Left side: checkbox top, text bottom */
 #llScheduler label.ll-svc-item .ll-svc-left {
-    flex: 0 0 40%;
-    width: 40%;
-    max-width: 40%;
+    flex: 0 0 35%;
+    width: 35%;
+    max-width: 35%;
     min-width: 0;
     min-height: 160px;
     align-self: stretch;
@@ -268,9 +268,9 @@
 
 /* Right side: media area */
 #llScheduler label.ll-svc-item .ll-svc-right {
-    flex: 0 0 60%;
-    width: 60%;
-    max-width: 60%;
+    flex: 0 0 65%;
+    width: 65%;
+    max-width: 65%;
     min-width: 0;
     min-height: 160px;
     aspect-ratio: 3 / 2;
@@ -289,17 +289,17 @@
     }
 
     #llScheduler label.ll-svc-item .ll-svc-left {
-        flex: 0 0 40%;
-        width: 40%;
-        max-width: 40%;
+        flex: 0 0 35%;
+        width: 35%;
+        max-width: 35%;
         min-height: 140px;
         padding: 12px 14px;
     }
 
     #llScheduler label.ll-svc-item .ll-svc-right {
-        flex: 0 0 60%;
-        width: 60%;
-        max-width: 60%;
+        flex: 0 0 65%;
+        width: 65%;
+        max-width: 65%;
         min-height: 140px;
         aspect-ratio: 3 / 2;
     }
