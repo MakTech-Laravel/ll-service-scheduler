@@ -156,59 +156,80 @@ class LL_Sched_Settings {
                         or <strong>Date range</strong> to block multiple consecutive days. These apply to all services.
                     </p>
 
-                    <div class="ll-admin-block-mode" style="margin-bottom:12px;">
-                        <label style="margin-right:16px;">
-                            <input type="radio" name="ll_admin_block_mode_ui" value="single" checked>
-                            Single date
-                        </label>
-                        <label>
-                            <input type="radio" name="ll_admin_block_mode_ui" value="range">
-                            Date range
-                        </label>
-                    </div>
-
-                    <div id="llAdminBlockedCal" class="ll-admin-blocked-cal">
-                        <div class="ll-admin-cal-header">
-                            <button type="button" class="button" id="llAdminCalPrev" aria-label="Previous month">&lsaquo;</button>
-                            <span id="llAdminCalTitle"></span>
-                            <button type="button" class="button" id="llAdminCalNext" aria-label="Next month">&rsaquo;</button>
+                    <div class="ll-admin-blocked-panel">
+                        <div class="ll-admin-block-mode" role="tablist" aria-label="Block date mode">
+                            <label class="ll-admin-mode-pill">
+                                <input type="radio" name="ll_admin_block_mode_ui" value="single" checked>
+                                <span>Single date</span>
+                            </label>
+                            <label class="ll-admin-mode-pill">
+                                <input type="radio" name="ll_admin_block_mode_ui" value="range">
+                                <span>Date range</span>
+                            </label>
                         </div>
-                        <div class="ll-admin-cal-weekdays" aria-hidden="true">
-                            <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span>
-                            <span>Fri</span><span>Sat</span><span>Sun</span>
+
+                        <div id="llAdminBlockedCal" class="ll-admin-blocked-cal">
+                            <div class="ll-admin-cal-header">
+                                <button type="button" class="ll-admin-cal-nav" id="llAdminCalPrev" aria-label="Previous month">
+                                    <span aria-hidden="true">&lsaquo;</span>
+                                </button>
+                                <div class="ll-admin-cal-title-wrap">
+                                    <span class="ll-admin-cal-kicker">Select dates to block</span>
+                                    <span id="llAdminCalTitle" class="ll-admin-cal-title"></span>
+                                </div>
+                                <button type="button" class="ll-admin-cal-nav" id="llAdminCalNext" aria-label="Next month">
+                                    <span aria-hidden="true">&rsaquo;</span>
+                                </button>
+                            </div>
+                            <div class="ll-admin-cal-weekdays" aria-hidden="true">
+                                <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span>
+                                <span>Fri</span><span>Sat</span><span>Sun</span>
+                            </div>
+                            <div class="ll-admin-cal-grid" id="llAdminCalGrid" role="grid"></div>
+                            <div class="ll-admin-cal-legend" aria-hidden="true">
+                                <span><i class="ll-leg-dot ll-leg-today"></i> Today</span>
+                                <span><i class="ll-leg-dot ll-leg-selected"></i> Selected</span>
+                                <span><i class="ll-leg-dot ll-leg-saved"></i> Blocked</span>
+                                <span><i class="ll-leg-dot ll-leg-disabled"></i> Past</span>
+                            </div>
+                            <p class="ll-admin-cal-hint description" id="llAdminCalHint">Click a day to select it, then click Add blocked date(s).</p>
                         </div>
-                        <div class="ll-admin-cal-grid" id="llAdminCalGrid" role="grid"></div>
-                        <p class="description" id="llAdminCalHint" style="margin-top:8px;">Click a day to select it, then click Add blocked date(s).</p>
-                    </div>
 
-                    <div class="ll-admin-block-toolbar" style="margin-top:14px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;">
-                        <input type="text"
-                               id="llAdminBlockLabel"
-                               class="regular-text"
-                               placeholder="Label (optional)"
-                               style="max-width:220px;">
-                        <button type="button" class="button button-secondary" id="llAdminAddBlockedDate">Add blocked date(s)</button>
-                    </div>
+                        <div class="ll-admin-block-toolbar">
+                            <input type="text"
+                                   id="llAdminBlockLabel"
+                                   class="regular-text ll-admin-block-label"
+                                   placeholder="Label (optional, e.g. Holiday)">
+                            <button type="button" class="button button-primary ll-admin-add-blocked" id="llAdminAddBlockedDate">Add blocked date(s)</button>
+                        </div>
 
-                    <div id="llAdminDaysOffList" class="ll-admin-days-off-list" style="margin-top:16px;">
-                        <?php foreach ( $days_off as $i => $off ) :
-                            $display = $off['start'] === $off['end']
-                                ? wp_date( get_option( 'date_format' ), strtotime( $off['start'] ) )
-                                : wp_date( get_option( 'date_format' ), strtotime( $off['start'] ) ) . ' – ' . wp_date( get_option( 'date_format' ), strtotime( $off['end'] ) );
-                        ?>
-                        <div class="ll-admin-days-off-row" data-start="<?php echo esc_attr( $off['start'] ); ?>" data-end="<?php echo esc_attr( $off['end'] ); ?>">
-                            <span class="ll-admin-days-off-display">
-                                <?php if ( ! empty( $off['label'] ) ) : ?>
-                                <strong><?php echo esc_html( $off['label'] ); ?></strong> —
+                        <div class="ll-admin-days-off-section">
+                            <h4 class="ll-admin-days-off-heading">Blocked dates</h4>
+                            <div id="llAdminDaysOffList" class="ll-admin-days-off-list">
+                                <?php if ( empty( $days_off ) ) : ?>
+                                <p class="ll-admin-days-off-empty description">No specific dates blocked yet. Use the calendar above to add one.</p>
                                 <?php endif; ?>
-                                <?php echo esc_html( $display ); ?>
-                            </span>
-                            <input type="hidden" name="days_off[<?php echo (int) $i; ?>][label]" value="<?php echo esc_attr( $off['label'] ); ?>">
-                            <input type="hidden" name="days_off[<?php echo (int) $i; ?>][start]" value="<?php echo esc_attr( $off['start'] ); ?>">
-                            <input type="hidden" name="days_off[<?php echo (int) $i; ?>][end]" value="<?php echo esc_attr( $off['end'] ); ?>">
-                            <button type="button" class="button ll-admin-rm-days-off">Remove</button>
+                                <?php foreach ( $days_off as $i => $off ) :
+                                    $display = $off['start'] === $off['end']
+                                        ? wp_date( get_option( 'date_format' ), strtotime( $off['start'] ) )
+                                        : wp_date( get_option( 'date_format' ), strtotime( $off['start'] ) ) . ' – ' . wp_date( get_option( 'date_format' ), strtotime( $off['end'] ) );
+                                ?>
+                                <div class="ll-admin-days-off-row" data-start="<?php echo esc_attr( $off['start'] ); ?>" data-end="<?php echo esc_attr( $off['end'] ); ?>">
+                                    <span class="ll-admin-days-off-badge" aria-hidden="true">&#128197;</span>
+                                    <span class="ll-admin-days-off-display">
+                                        <?php if ( ! empty( $off['label'] ) ) : ?>
+                                        <strong class="ll-admin-days-off-label"><?php echo esc_html( $off['label'] ); ?></strong>
+                                        <?php endif; ?>
+                                        <span class="ll-admin-days-off-dates"><?php echo esc_html( $display ); ?></span>
+                                    </span>
+                                    <input type="hidden" name="days_off[<?php echo (int) $i; ?>][label]" value="<?php echo esc_attr( $off['label'] ); ?>">
+                                    <input type="hidden" name="days_off[<?php echo (int) $i; ?>][start]" value="<?php echo esc_attr( $off['start'] ); ?>">
+                                    <input type="hidden" name="days_off[<?php echo (int) $i; ?>][end]" value="<?php echo esc_attr( $off['end'] ); ?>">
+                                    <button type="button" class="button ll-admin-rm-days-off" aria-label="Remove blocked date">Remove</button>
+                                </div>
+                                <?php endforeach; ?>
+                            </div>
                         </div>
-                        <?php endforeach; ?>
                     </div>
                 </td>
             </tr>

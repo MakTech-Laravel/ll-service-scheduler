@@ -367,92 +367,290 @@ body.ll-sched-admin-page .ll-bookings-table-wrap {
     background: #000;
 }
 
-/* ── Settings: blocked dates calendar ── */
-.ll-admin-blocked-cal {
-    max-width: 420px;
-    padding: 14px;
+/* ── Settings: blocked dates calendar (premium) ── */
+.ll-admin-blocked-panel {
+    max-width: 520px;
+}
+
+.ll-admin-block-mode {
+    display: inline-flex;
+    gap: 0;
+    padding: 4px;
+    margin-bottom: 16px;
+    background: #f0f0f1;
+    border-radius: 999px;
+    border: 1px solid #dcdcde;
+}
+
+.ll-admin-mode-pill {
+    margin: 0;
+    cursor: pointer;
+}
+
+.ll-admin-mode-pill input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.ll-admin-mode-pill span {
+    display: block;
+    padding: 8px 18px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #50575e;
+    border-radius: 999px;
+    transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+}
+
+.ll-admin-mode-pill input:checked + span {
     background: #fff;
-    border: 1px solid #c3c4c7;
-    border-radius: 8px;
+    color: #1d2327;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+
+.ll-admin-blocked-cal {
+    padding: 0;
+    background: #fff;
+    border: 1px solid #e4e4e7;
+    border-radius: 16px;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+    overflow: hidden;
 }
 
 .ll-admin-cal-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 10px;
+    gap: 12px;
+    padding: 18px 20px;
+    background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+    color: #fff;
 }
 
-.ll-admin-cal-header #llAdminCalTitle {
+.ll-admin-cal-title-wrap {
+    flex: 1;
+    text-align: center;
+}
+
+.ll-admin-cal-kicker {
+    display: block;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgba(200, 168, 75, 0.95);
+    margin-bottom: 2px;
+}
+
+.ll-admin-cal-title {
+    display: block;
     font-weight: 700;
-    font-size: 14px;
+    font-size: 17px;
+    letter-spacing: 0.02em;
+    color: #fff;
+}
+
+.ll-admin-cal-nav {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1.5px solid rgba(255, 255, 255, 0.25);
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+    font-size: 20px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0;
+    transition: background 0.2s, border-color 0.2s, transform 0.15s;
+}
+
+.ll-admin-cal-nav:hover {
+    background: rgba(200, 168, 75, 0.25);
+    border-color: #c8a84b;
+    color: #fff;
+}
+
+.ll-admin-cal-nav:active {
+    transform: scale(0.96);
 }
 
 .ll-admin-cal-weekdays {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
-    gap: 4px;
-    margin-bottom: 4px;
+    gap: 6px;
+    padding: 14px 16px 6px;
+    background: #fafafa;
+    border-bottom: 1px solid #eee;
 }
 
 .ll-admin-cal-weekdays span {
     text-align: center;
     font-size: 11px;
-    font-weight: 600;
-    color: #646970;
+    font-weight: 700;
+    color: #888;
     text-transform: uppercase;
+    letter-spacing: 0.06em;
 }
 
 .ll-admin-cal-grid {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
-    gap: 4px;
+    gap: 6px;
+    padding: 10px 16px 16px;
+    background: #fff;
 }
 
 .ll-admin-cal-cell {
-    height: 36px;
-    border: 1px solid #dcdcde;
-    border-radius: 4px;
-    background: #f6f7f7;
+    aspect-ratio: 1;
+    min-height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1.5px solid transparent;
+    border-radius: 10px;
+    background: #f7f7f8;
     cursor: pointer;
-    font-size: 13px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #1d2327;
     padding: 0;
+    transition: background 0.15s, border-color 0.15s, color 0.15s, transform 0.1s, box-shadow 0.15s;
 }
 
-.ll-admin-cal-cell:hover {
-    border-color: #2271b1;
-    background: #f0f6fc;
+.ll-admin-cal-cell:not(.ll-admin-cal-disabled):not(.ll-admin-cal-empty):hover {
+    border-color: #c8a84b;
+    background: #fffdf5;
+    color: #8a6d1f;
+    box-shadow: 0 2px 8px rgba(200, 168, 75, 0.2);
+}
+
+.ll-admin-cal-cell:not(.ll-admin-cal-disabled):not(.ll-admin-cal-empty):active {
+    transform: scale(0.94);
+}
+
+.ll-admin-cal-today {
+    box-shadow: inset 0 0 0 2px #c8a84b;
+    font-weight: 800;
 }
 
 .ll-admin-cal-disabled {
-    background: #f0f0f1 !important;
-    border-color: #e0e0e0 !important;
-    color: #a7aaad !important;
+    background: #f3f3f4 !important;
+    border-color: transparent !important;
+    color: #b0b0b5 !important;
     cursor: not-allowed !important;
     pointer-events: none;
-}
-
-.ll-admin-cal-disabled:hover {
-    border-color: #e0e0e0 !important;
-    background: #f0f0f1 !important;
+    box-shadow: none !important;
 }
 
 .ll-admin-cal-empty {
     background: transparent;
     border: none;
     cursor: default;
+    min-height: 0;
 }
 
 .ll-admin-cal-saved {
-    background: #fcf0f1;
-    border-color: #d63638;
-    color: #8a2424;
+    background: #fff5f5 !important;
+    border-color: #f0c4c4 !important;
+    color: #9b2c2c !important;
+    font-weight: 700;
+}
+
+.ll-admin-cal-saved.ll-admin-cal-disabled {
+    opacity: 0.65;
 }
 
 .ll-admin-cal-selected {
-    background: #2271b1 !important;
-    border-color: #135e96 !important;
+    background: #c8a84b !important;
+    border-color: #b89438 !important;
     color: #fff !important;
+    box-shadow: 0 3px 10px rgba(200, 168, 75, 0.45) !important;
+}
+
+.ll-admin-cal-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px 18px;
+    padding: 0 16px 14px;
+    font-size: 11px;
+    color: #646970;
+}
+
+.ll-admin-cal-legend span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.ll-leg-dot {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    font-style: normal;
+}
+
+.ll-leg-today { box-shadow: inset 0 0 0 2px #c8a84b; background: #fff; }
+.ll-leg-selected { background: #c8a84b; }
+.ll-leg-saved { background: #fff5f5; border: 1px solid #f0c4c4; }
+.ll-leg-disabled { background: #f3f3f4; }
+
+.ll-admin-cal-hint {
+    margin: 0 !important;
+    padding: 12px 16px 16px;
+    background: #fafafa;
+    border-top: 1px solid #eee;
+    font-size: 12px !important;
+    color: #646970 !important;
+}
+
+.ll-admin-block-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: stretch;
+    margin-top: 16px;
+}
+
+.ll-admin-block-label {
+    flex: 1;
+    min-width: 160px;
+    padding: 10px 14px !important;
+    border-radius: 10px !important;
+    border: 1.5px solid #ddd !important;
+}
+
+.ll-admin-add-blocked {
+    border-radius: 10px !important;
+    padding: 8px 20px !important;
+    font-weight: 600 !important;
+    background: #c8a84b !important;
+    border-color: #b89438 !important;
+    box-shadow: 0 2px 8px rgba(200, 168, 75, 0.35);
+}
+
+.ll-admin-add-blocked:hover {
+    background: #b89438 !important;
+    border-color: #a07e2a !important;
+}
+
+.ll-admin-days-off-section {
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid #e8e8e8;
+}
+
+.ll-admin-days-off-heading {
+    margin: 0 0 10px;
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #50575e;
 }
 
 .ll-admin-days-off-list {
@@ -461,19 +659,72 @@ body.ll-sched-admin-page .ll-bookings-table-wrap {
     gap: 8px;
 }
 
+.ll-admin-days-off-empty {
+    margin: 0;
+    padding: 14px 16px;
+    background: #fafafa;
+    border: 1px dashed #dcdcde;
+    border-radius: 10px;
+    text-align: center;
+}
+
 .ll-admin-days-off-row {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 10px;
-    padding: 8px 10px;
+    gap: 12px;
+    padding: 12px 14px;
     background: #fff;
-    border: 1px solid #dcdcde;
-    border-radius: 4px;
+    border: 1px solid #e8e8e8;
+    border-radius: 12px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.ll-admin-days-off-row:hover {
+    border-color: #d4c4a0;
+    box-shadow: 0 2px 10px rgba(200, 168, 75, 0.12);
+}
+
+.ll-admin-days-off-badge {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #fffdf5;
+    border: 1px solid #e8d9a8;
+    border-radius: 10px;
+    font-size: 16px;
+    flex-shrink: 0;
 }
 
 .ll-admin-days-off-display {
     flex: 1;
-    min-width: 180px;
+    min-width: 160px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.ll-admin-days-off-label {
     font-size: 13px;
+    color: #1d2327;
+}
+
+.ll-admin-days-off-dates {
+    font-size: 12px;
+    color: #646970;
+}
+
+.ll-admin-rm-days-off {
+    border-radius: 8px !important;
+    color: #b32d2e !important;
+    border-color: #f0c4c4 !important;
+    background: #fff5f5 !important;
+}
+
+.ll-admin-rm-days-off:hover {
+    background: #fce8e8 !important;
+    border-color: #e8a0a0 !important;
 }

@@ -119,6 +119,8 @@ jQuery(function ($) {
             if (isPast) {
                 cell.classList.add('ll-admin-cal-disabled');
                 cell.setAttribute('aria-disabled', 'true');
+            } else if (dateStr === todayStr) {
+                cell.classList.add('ll-admin-cal-today');
             }
 
             if (dateInAnyEntry(dateStr, saved)) {
@@ -183,23 +185,44 @@ jQuery(function ($) {
         return exists;
     }
 
+    function hideEmptyState() {
+        $('#llAdminDaysOffList .ll-admin-days-off-empty').remove();
+    }
+
+    function showEmptyStateIfNeeded() {
+        if ($('#llAdminDaysOffList .ll-admin-days-off-row').length === 0) {
+            if (!$('#llAdminDaysOffList .ll-admin-days-off-empty').length) {
+                $('#llAdminDaysOffList').append(
+                    '<p class="ll-admin-days-off-empty description">No specific dates blocked yet. Use the calendar above to add one.</p>'
+                );
+            }
+        }
+    }
+
     function addEntry(label, start, end) {
         if (!start || entryExists(start, end)) {
             return;
         }
 
-        var display = formatDisplay(start, end);
-        if (label) {
-            display = label + ' — ' + display;
-        }
+        hideEmptyState();
 
+        var dateText = formatDisplay(start, end);
         var row = $('<div class="ll-admin-days-off-row"></div>');
         row.attr('data-start', start).attr('data-end', end);
-        row.append('<span class="ll-admin-days-off-display">' + $('<span>').text(display).html() + '</span>');
+        row.append('<span class="ll-admin-days-off-badge" aria-hidden="true">&#128197;</span>');
+        row.append('<span class="ll-admin-days-off-display"></span>');
+        row.find('.ll-admin-days-off-display').append(
+            label
+                ? $('<strong class="ll-admin-days-off-label"></strong>').text(label)
+                : ''
+        );
+        row.find('.ll-admin-days-off-display').append(
+            $('<span class="ll-admin-days-off-dates"></span>').text(dateText)
+        );
         row.append('<input type="hidden" name="days_off[' + daysOffIdx + '][label]" value="' + $('<span>').text(label).html() + '">');
         row.append('<input type="hidden" name="days_off[' + daysOffIdx + '][start]" value="' + start + '">');
         row.append('<input type="hidden" name="days_off[' + daysOffIdx + '][end]" value="' + end + '">');
-        row.append('<button type="button" class="button ll-admin-rm-days-off">Remove</button>');
+        row.append('<button type="button" class="button ll-admin-rm-days-off" aria-label="Remove blocked date">Remove</button>');
         $('#llAdminDaysOffList').append(row);
         daysOffIdx++;
 
@@ -253,6 +276,7 @@ jQuery(function ($) {
         $(this).closest('.ll-admin-days-off-row').fadeOut(150, function () {
             $(this).remove();
             reindexDaysOff();
+            showEmptyStateIfNeeded();
             renderCalendar();
         });
     });
