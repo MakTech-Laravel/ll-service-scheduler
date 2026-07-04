@@ -21,6 +21,11 @@ jQuery(function ($) {
         return y + '-' + String(m + 1).padStart(2, '0') + '-' + String(d).padStart(2, '0');
     }
 
+    function getTodayStr() {
+        var now = new Date();
+        return formatDate(now.getFullYear(), now.getMonth(), now.getDate());
+    }
+
     function getSavedEntries() {
         var entries = [];
         $('#llAdminDaysOffList .ll-admin-days-off-row').each(function () {
@@ -92,6 +97,7 @@ jQuery(function ($) {
         var daysInMo = new Date(calYear, calMonth + 1, 0).getDate();
         var startOffset = firstDay === 0 ? 6 : firstDay - 1;
         var saved = getSavedEntries();
+        var todayStr = getTodayStr();
 
         for (var i = 0; i < startOffset; i++) {
             var blank = document.createElement('div');
@@ -101,22 +107,32 @@ jQuery(function ($) {
 
         for (var d = 1; d <= daysInMo; d++) {
             var dateStr = formatDate(calYear, calMonth, d);
-            var cell = document.createElement('button');
-            cell.type = 'button';
+            var isPast = dateStr < todayStr;
+            var cell = document.createElement(isPast ? 'div' : 'button');
+            if (!isPast) {
+                cell.type = 'button';
+            }
             cell.className = 'll-admin-cal-cell';
             cell.textContent = d;
             cell.setAttribute('data-date', dateStr);
 
+            if (isPast) {
+                cell.classList.add('ll-admin-cal-disabled');
+                cell.setAttribute('aria-disabled', 'true');
+            }
+
             if (dateInAnyEntry(dateStr, saved)) {
                 cell.classList.add('ll-admin-cal-saved');
             }
-            if (dateInSelection(dateStr)) {
+            if (!isPast && dateInSelection(dateStr)) {
                 cell.classList.add('ll-admin-cal-selected');
             }
 
-            cell.addEventListener('click', function () {
-                onDayClick(this.getAttribute('data-date'));
-            });
+            if (!isPast) {
+                cell.addEventListener('click', function () {
+                    onDayClick(this.getAttribute('data-date'));
+                });
+            }
 
             gridEl.appendChild(cell);
         }
@@ -125,6 +141,9 @@ jQuery(function ($) {
     }
 
     function onDayClick(dateStr) {
+        if (dateStr < getTodayStr()) {
+            return;
+        }
         if (blockMode === 'single') {
             rangeStart = dateStr;
             rangeEnd = null;

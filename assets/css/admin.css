@@ -424,6 +424,19 @@ body.ll-sched-admin-page .ll-bookings-table-wrap {
     background: #f0f6fc;
 }
 
+.ll-admin-cal-disabled {
+    background: #f0f0f1 !important;
+    border-color: #e0e0e0 !important;
+    color: #a7aaad !important;
+    cursor: not-allowed !important;
+    pointer-events: none;
+}
+
+.ll-admin-cal-disabled:hover {
+    border-color: #e0e0e0 !important;
+    background: #f0f0f1 !important;
+}
+
 .ll-admin-cal-empty {
     background: transparent;
     border: none;
