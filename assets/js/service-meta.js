@@ -106,6 +106,37 @@ jQuery(function ($) {
         $(this).closest('.ll-svc-address-tag').fadeOut(150, function () { $(this).remove(); });
     });
 
+    /* ── Allow video in Featured Image picker (services only) ── */
+    if (typeof wp !== 'undefined' && wp.media && wp.media.featuredImage && wp.media.featuredImage.frame) {
+        var originalFeaturedFrame = wp.media.featuredImage.frame;
+
+        wp.media.featuredImage.frame = function () {
+            var frame = originalFeaturedFrame.apply(this, arguments);
+
+            frame.off('open.llSchedFeatured').on('open.llSchedFeatured', function () {
+                var state = frame.state();
+                if (!state) {
+                    return;
+                }
+
+                var library = state.get('library');
+                if (library && library.props) {
+                    library.props.set('type', '');
+                }
+
+                var featuredState = frame.states.get('featured-image');
+                if (featuredState) {
+                    var featuredLibrary = featuredState.get('library');
+                    if (featuredLibrary && featuredLibrary.props) {
+                        featuredLibrary.props.set('type', '');
+                    }
+                }
+            });
+
+            return frame;
+        };
+    }
+
     /* ── Day label styling on checkbox change ── */
     $(document).on('change', '.ll-day-checkboxes input[type="checkbox"]', function () {
         var $lbl = $(this).closest('.ll-day-label');

@@ -353,3 +353,16 @@ body.ll-sched-admin-page .ll-bookings-table-wrap {
 .ll-svc-card-media-actions {
     margin: 0;
 }
+
+.ll-svc-featured-video-wrap {
+    margin: 0;
+}
+
+.ll-svc-featured-video {
+    display: block;
+    width: 100%;
+    max-width: 266px;
+    height: auto;
+    border-radius: 4px;
+    background: #000;
+}

@@ -10,6 +10,7 @@ class LL_Sched_Service_Meta {
         add_action( 'add_meta_boxes',       array( $this, 'register_meta_boxes' ) );
         add_action( 'save_post_services',   array( $this, 'save_meta' ), 10, 2 );
         add_action( 'admin_enqueue_scripts', array( $this, 'enqueue' ) );
+        add_filter( 'admin_post_thumbnail_html', array( $this, 'featured_image_video_html' ), 10, 2 );
     }
 
     public function enqueue( $hook ) {
@@ -24,7 +25,7 @@ class LL_Sched_Service_Meta {
         wp_enqueue_script(
             'll-sched-service-meta',
             LL_SCHED_URL . 'assets/js/service-meta.js',
-            array( 'jquery' ),
+            array( 'jquery', 'media-editor' ),
             LL_SCHED_VER,
             true
         );
@@ -35,6 +36,40 @@ class LL_Sched_Service_Meta {
             array(),
             LL_SCHED_VER
         );
+    }
+
+    /**
+     * Show a proper video preview when a video is set as the Featured Image.
+     */
+    public function featured_image_video_html( $content, $post_id ) {
+        $thumb_id = (int) get_post_thumbnail_id( $post_id );
+        if ( ! $thumb_id ) {
+            return $content;
+        }
+
+        $mime = (string) get_post_mime_type( $thumb_id );
+        if ( strpos( $mime, 'video/' ) !== 0 ) {
+            return $content;
+        }
+
+        $url = wp_get_attachment_url( $thumb_id );
+        if ( ! $url ) {
+            return $content;
+        }
+
+        ob_start();
+        ?>
+        <p class="hide-if-no-js ll-svc-featured-video-wrap">
+            <video class="ll-svc-featured-video" src="<?php echo esc_url( $url ); ?>" muted playsinline controls></video>
+        </p>
+        <p class="description">
+            <?php esc_html_e( 'Video featured image — plays on the booking service card.', 'll-scheduler' ); ?>
+        </p>
+        <p class="hide-if-no-js">
+            <a href="#" id="remove-post-thumbnail"><?php esc_html_e( 'Remove featured image', 'll-scheduler' ); ?></a>
+        </p>
+        <?php
+        return ob_get_clean();
     }
 
     public function register_meta_boxes() {
@@ -81,9 +116,9 @@ class LL_Sched_Service_Meta {
             <div class="ll-svc-section">
                 <h4>Service Card Image / GIF / Video</h4>
                 <p class="description">
-                    Optional override for the booking form card. Leave empty to use this service&rsquo;s <strong>Featured Image</strong>.
-                    Upload a still image, animated GIF, or short MP4/WebM clip (keep files small for fast loading).
-                    GIFs and videos autoplay and loop on the service card.
+                    Upload a still image, GIF, or short MP4/WebM for the booking card (recommended for <strong>videos</strong>).
+                    WordPress <strong>Featured Image</strong> can also store a video, but the media popup may show a preview error — that is a WordPress limitation and does not affect the booking page.
+                    Leave this empty to use the Featured Image instead.
                 </p>
                 <input type="hidden" name="_ll_svc_card_media_id" id="llSvcCardMediaId" value="<?php echo esc_attr( $card_media_id ); ?>">
                 <div class="ll-svc-card-media-preview" id="llSvcCardMediaPreview">
