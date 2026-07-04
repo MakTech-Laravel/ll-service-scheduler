@@ -11,6 +11,7 @@
     ══════════════════════════════════════════ */
     var cfg            = window.llSched || {};
     var BLOCKED_DAYS   = cfg.blockedDays  || []; // global blocked days (0=Sun…6=Sat)
+    var GLOBAL_DAYS_OFF = cfg.globalDaysOff || [];
     var TIME_SLOTS     = cfg.timeSlots    || []; // global time slots
     var MODE           = cfg.selectionMode || 'multiple';
     var AJAX_URL       = cfg.ajaxUrl      || '';
@@ -88,6 +89,19 @@
                 if (off.start && dateStr >= off.start && dateStr <= (off.end || off.start)) {
                     return true;
                 }
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Check if a date falls in global blocked date entries.
+     */
+    function isDateInGlobalDaysOff(dateStr) {
+        for (var i = 0; i < GLOBAL_DAYS_OFF.length; i++) {
+            var off = GLOBAL_DAYS_OFF[i];
+            if (off.start && dateStr >= off.start && dateStr <= (off.end || off.start)) {
+                return true;
             }
         }
         return false;
@@ -661,7 +675,9 @@
             var dateStr   = formatDate(calYear, calMonth, d);
             var isPast    = dateStr < todayStr;
             var effectiveBlocked = getEffectiveBlockedDays();
-            var isBlocked = effectiveBlocked.indexOf(jsDay) !== -1 || isDateInDaysOff(dateStr);
+            var isBlocked = effectiveBlocked.indexOf(jsDay) !== -1
+                || isDateInGlobalDaysOff(dateStr)
+                || isDateInDaysOff(dateStr);
 
             if (isPast || isBlocked) {
                 cell.classList.add('ll-cal-disabled');
@@ -718,6 +734,7 @@
         var now      = new Date();
         var todayStr = formatDate(now.getFullYear(), now.getMonth(), now.getDate());
         if (dateStr < todayStr) return false;
+        if (isDateInGlobalDaysOff(dateStr)) return false;
         if (isDateInDaysOff(dateStr)) return false;
         var parts = dateStr.split('-');
         var jsDay = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10)).getDay();

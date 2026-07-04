@@ -127,6 +127,7 @@ class LL_Sched_Settings {
     /* ─── Tab: Calendar ─── */
     private static function tab_calendar() {
         $blocked   = array_map( 'intval', (array) get_option( 'll_sched_blocked_days', array() ) );
+        $days_off  = ll_sched_get_global_days_off();
         $day_names = array( 0 => 'Sunday', 1 => 'Monday', 2 => 'Tuesday', 3 => 'Wednesday', 4 => 'Thursday', 5 => 'Friday', 6 => 'Saturday' );
         ?>
         <table class="form-table">
@@ -145,6 +146,70 @@ class LL_Sched_Settings {
                         <?php endforeach; ?>
                     </div>
                     <p class="description" style="margin-top:10px;">Default: Sunday and Saturday are blocked (no bookings on weekends).</p>
+                </td>
+            </tr>
+            <tr>
+                <th>Blocked Specific Dates</th>
+                <td>
+                    <p class="description" style="margin-bottom:12px;">
+                        Block specific dates when you are unavailable. Use <strong>Single date</strong> to block one day,
+                        or <strong>Date range</strong> to block multiple consecutive days. These apply to all services.
+                    </p>
+
+                    <div class="ll-admin-block-mode" style="margin-bottom:12px;">
+                        <label style="margin-right:16px;">
+                            <input type="radio" name="ll_admin_block_mode_ui" value="single" checked>
+                            Single date
+                        </label>
+                        <label>
+                            <input type="radio" name="ll_admin_block_mode_ui" value="range">
+                            Date range
+                        </label>
+                    </div>
+
+                    <div id="llAdminBlockedCal" class="ll-admin-blocked-cal">
+                        <div class="ll-admin-cal-header">
+                            <button type="button" class="button" id="llAdminCalPrev" aria-label="Previous month">&lsaquo;</button>
+                            <span id="llAdminCalTitle"></span>
+                            <button type="button" class="button" id="llAdminCalNext" aria-label="Next month">&rsaquo;</button>
+                        </div>
+                        <div class="ll-admin-cal-weekdays" aria-hidden="true">
+                            <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span>
+                            <span>Fri</span><span>Sat</span><span>Sun</span>
+                        </div>
+                        <div class="ll-admin-cal-grid" id="llAdminCalGrid" role="grid"></div>
+                        <p class="description" id="llAdminCalHint" style="margin-top:8px;">Click a day to select it, then click Add blocked date(s).</p>
+                    </div>
+
+                    <div class="ll-admin-block-toolbar" style="margin-top:14px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;">
+                        <input type="text"
+                               id="llAdminBlockLabel"
+                               class="regular-text"
+                               placeholder="Label (optional)"
+                               style="max-width:220px;">
+                        <button type="button" class="button button-secondary" id="llAdminAddBlockedDate">Add blocked date(s)</button>
+                    </div>
+
+                    <div id="llAdminDaysOffList" class="ll-admin-days-off-list" style="margin-top:16px;">
+                        <?php foreach ( $days_off as $i => $off ) :
+                            $display = $off['start'] === $off['end']
+                                ? wp_date( get_option( 'date_format' ), strtotime( $off['start'] ) )
+                                : wp_date( get_option( 'date_format' ), strtotime( $off['start'] ) ) . ' – ' . wp_date( get_option( 'date_format' ), strtotime( $off['end'] ) );
+                        ?>
+                        <div class="ll-admin-days-off-row" data-start="<?php echo esc_attr( $off['start'] ); ?>" data-end="<?php echo esc_attr( $off['end'] ); ?>">
+                            <span class="ll-admin-days-off-display">
+                                <?php if ( ! empty( $off['label'] ) ) : ?>
+                                <strong><?php echo esc_html( $off['label'] ); ?></strong> —
+                                <?php endif; ?>
+                                <?php echo esc_html( $display ); ?>
+                            </span>
+                            <input type="hidden" name="days_off[<?php echo (int) $i; ?>][label]" value="<?php echo esc_attr( $off['label'] ); ?>">
+                            <input type="hidden" name="days_off[<?php echo (int) $i; ?>][start]" value="<?php echo esc_attr( $off['start'] ); ?>">
+                            <input type="hidden" name="days_off[<?php echo (int) $i; ?>][end]" value="<?php echo esc_attr( $off['end'] ); ?>">
+                            <button type="button" class="button ll-admin-rm-days-off">Remove</button>
+                        </div>
+                        <?php endforeach; ?>
+                    </div>
                 </td>
             </tr>
         </table>
@@ -197,6 +262,34 @@ class LL_Sched_Settings {
             $days = array_map( 'intval', (array)( $_POST['blocked_days'] ?? array() ) );
             update_option( 'll_sched_blocked_days', $days );
             delete_option( 'll_sched_available_days' );
+
+            $clean_off = array();
+            foreach ( (array) ( $_POST['days_off'] ?? array() ) as $off ) {
+                $start = sanitize_text_field( $off['start'] ?? '' );
+                $end   = sanitize_text_field( $off['end'] ?? $start );
+                if ( $start === '' ) {
+                    continue;
+                }
+                $start_obj = DateTime::createFromFormat( 'Y-m-d', $start );
+                $end_obj   = DateTime::createFromFormat( 'Y-m-d', $end );
+                if ( ! $start_obj || $start_obj->format( 'Y-m-d' ) !== $start ) {
+                    continue;
+                }
+                if ( ! $end_obj || $end_obj->format( 'Y-m-d' ) !== $end ) {
+                    $end = $start;
+                }
+                if ( $end < $start ) {
+                    $tmp   = $start;
+                    $start = $end;
+                    $end   = $tmp;
+                }
+                $clean_off[] = array(
+                    'label' => sanitize_text_field( $off['label'] ?? '' ),
+                    'start' => $start,
+                    'end'   => $end,
+                );
+            }
+            update_option( 'll_sched_days_off', $clean_off );
         }
 
         if ( $tab === 'timeslots' ) {

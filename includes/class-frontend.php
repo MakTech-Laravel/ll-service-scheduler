@@ -98,6 +98,7 @@ class LL_Sched_Frontend {
             'ajaxUrl'       => admin_url( 'admin-ajax.php' ),
             'nonce'         => wp_create_nonce( 'll_sched_booking' ),
             'blockedDays'   => array_map( 'intval', (array) get_option( 'll_sched_blocked_days', array() ) ),
+            'globalDaysOff' => ll_sched_get_global_days_off(),
             'timeSlots'     => (array) get_option( 'll_sched_time_slots', array() ),
             'selectionMode' => get_option( 'll_sched_selection_mode', 'multiple' ),
             'serviceData'   => $this->build_service_data(),

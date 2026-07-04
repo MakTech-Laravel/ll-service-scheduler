@@ -13,7 +13,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'LL_SCHED_VER',  '2.2.2' );
+define( 'LL_SCHED_VER',  '2.2.3' );
 define( 'LL_SCHED_DIR',  plugin_dir_path( __FILE__ ) );
 define( 'LL_SCHED_URL',  plugin_dir_url( __FILE__ ) );
 define( 'LL_SCHED_FILE', __FILE__ );
@@ -607,7 +607,62 @@ function ll_sched_service_matches_filters( $post_id, $property_size, $city, $add
 }
 
 /**
- * Whether a service allows a specific date (weekday + days off).
+ * Sanitized global blocked date entries (single dates use start === end).
+ *
+ * @return array<int, array{label: string, start: string, end: string}>
+ */
+function ll_sched_get_global_days_off() {
+    $clean = array();
+    foreach ( (array) get_option( 'll_sched_days_off', array() ) as $off ) {
+        if ( ! is_array( $off ) ) {
+            continue;
+        }
+        $start = sanitize_text_field( $off['start'] ?? '' );
+        $end   = sanitize_text_field( $off['end'] ?? $start );
+        if ( $start === '' ) {
+            continue;
+        }
+        $start_obj = DateTime::createFromFormat( 'Y-m-d', $start );
+        $end_obj   = DateTime::createFromFormat( 'Y-m-d', $end );
+        if ( ! $start_obj || $start_obj->format( 'Y-m-d' ) !== $start ) {
+            continue;
+        }
+        if ( ! $end_obj || $end_obj->format( 'Y-m-d' ) !== $end ) {
+            $end = $start;
+        }
+        if ( $end < $start ) {
+            $tmp   = $start;
+            $start = $end;
+            $end   = $tmp;
+        }
+        $clean[] = array(
+            'label' => sanitize_text_field( $off['label'] ?? '' ),
+            'start' => $start,
+            'end'   => $end,
+        );
+    }
+    return $clean;
+}
+
+/**
+ * Whether a date falls within any blocked entry (inclusive range).
+ */
+function ll_sched_date_in_days_off( $date, $ranges ) {
+    if ( ! is_array( $ranges ) || $date === '' ) {
+        return false;
+    }
+    foreach ( $ranges as $off ) {
+        $start = $off['start'] ?? '';
+        $end   = $off['end'] ?? $start;
+        if ( $start && $date >= $start && $date <= $end ) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/**
+ * Whether a service allows a specific date (global days off + weekday + per-service days off).
  */
 function ll_sched_service_allows_date( $post_id, $date, $global_blocked = null ) {
     if ( null === $global_blocked ) {
@@ -615,7 +670,11 @@ function ll_sched_service_allows_date( $post_id, $date, $global_blocked = null )
     }
 
     $date_obj = DateTime::createFromFormat( 'Y-m-d', $date );
-    if ( ! $date_obj ) {
+    if ( ! $date_obj || $date_obj->format( 'Y-m-d' ) !== $date ) {
+        return false;
+    }
+
+    if ( ll_sched_date_in_days_off( $date, ll_sched_get_global_days_off() ) ) {
         return false;
     }
 
@@ -627,12 +686,8 @@ function ll_sched_service_allows_date( $post_id, $date, $global_blocked = null )
     $use_custom = get_post_meta( $post_id, '_ll_svc_use_custom', true ) === '1';
     if ( $use_custom ) {
         $days_off = (array) get_post_meta( $post_id, '_ll_svc_days_off', true );
-        foreach ( $days_off as $off ) {
-            $off_start = $off['start'] ?? '';
-            $off_end   = $off['end'] ?? $off_start;
-            if ( $off_start && $date >= $off_start && $date <= $off_end ) {
-                return false;
-            }
+        if ( ll_sched_date_in_days_off( $date, $days_off ) ) {
+            return false;
         }
     }
 

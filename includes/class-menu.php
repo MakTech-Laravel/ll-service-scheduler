@@ -117,6 +117,23 @@ class LL_Sched_Menu {
             'ajaxUrl' => admin_url( 'admin-ajax.php' ),
             'nonce'   => wp_create_nonce( 'll_sched_admin' ),
         ) );
+
+        if ( $hook === 'll-scheduler_page_ll-scheduler-settings' ) {
+            $tab = isset( $_GET['tab'] ) ? sanitize_key( $_GET['tab'] ) : 'general';
+            if ( $tab === 'calendar' ) {
+                wp_enqueue_script(
+                    'll-sched-admin-calendar',
+                    LL_SCHED_URL . 'assets/js/admin-calendar.js',
+                    array( 'jquery', 'll-sched-admin' ),
+                    LL_SCHED_VER,
+                    true
+                );
+                wp_localize_script( 'll-sched-admin-calendar', 'llSchedAdminCal', array(
+                    'daysOff'    => ll_sched_get_global_days_off(),
+                    'dateFormat' => get_option( 'date_format' ),
+                ) );
+            }
+        }
     }
 
     public function maybe_create_product() {
