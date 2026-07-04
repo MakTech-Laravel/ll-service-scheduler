@@ -13,7 +13,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'LL_SCHED_VER',  '2.2.7' );
+define( 'LL_SCHED_VER',  '2.2.8' );
 define( 'LL_SCHED_DIR',  plugin_dir_path( __FILE__ ) );
 define( 'LL_SCHED_URL',  plugin_dir_url( __FILE__ ) );
 define( 'LL_SCHED_FILE', __FILE__ );
